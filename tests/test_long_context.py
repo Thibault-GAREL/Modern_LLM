@@ -20,7 +20,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from mt.config import (
+from mllm.config import (
     AttentionConfig,
     FFNConfig,
     ModelConfig,
@@ -28,8 +28,8 @@ from mt.config import (
     PositionConfig,
     RopeScalingConfig,
 )
-from mt.model import Transformer
-from mt.utils.seed import set_determinism
+from mllm.model import Transformer
+from mllm.utils.seed import set_determinism
 
 VOCAB = 32
 TRAIN_LEN = 32

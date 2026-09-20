@@ -5,10 +5,10 @@ from __future__ import annotations
 import pytest
 import torch
 
-from mt.config import FFNConfig, ModelConfig
-from mt.init import is_residual_projection
-from mt.layers.ffn import MLP, GatedMLP, build_ffn, compute_d_ff, round_to_multiple
-from mt.utils.seed import set_determinism
+from mllm.config import FFNConfig, ModelConfig
+from mllm.init import is_residual_projection
+from mllm.layers.ffn import MLP, GatedMLP, build_ffn, compute_d_ff, round_to_multiple
+from mllm.utils.seed import set_determinism
 
 D_MODEL = 256
 

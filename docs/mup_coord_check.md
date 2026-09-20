@@ -39,10 +39,10 @@ smallest coordinate size over the four widths.
 
 | | Change | Status | Where |
 |---|---|---|---|
-| (a) | hidden matrices initialized with variance `1 / mult` | ✅ | `mt/init.py` |
-| (b) | hidden matrices given a learning rate `/ mult` | ✅ | `mt/optim.py`, `build_param_groups` |
-| (c) | attention scaled by `1 / head_dim` instead of `1 / sqrt(head_dim)` | ✅ | `mt/layers/attention.py` |
-| (d) | output logits multiplied by `1 / mult` | ✅ | `mt/layers/heads.py`, `LMHead` |
+| (a) | hidden matrices initialized with variance `1 / mult` | ✅ | `mllm/init.py` |
+| (b) | hidden matrices given a learning rate `/ mult` | ✅ | `mllm/optim.py`, `build_param_groups` |
+| (c) | attention scaled by `1 / head_dim` instead of `1 / sqrt(head_dim)` | ✅ | `mllm/layers/attention.py` |
+| (d) | output logits multiplied by `1 / mult` | ✅ | `mllm/layers/heads.py`, `LMHead` |
 
 All four are now exercised together, on the real `Transformer` rather than on a
 stand-in.

@@ -287,7 +287,7 @@ def build_cache(cfg, *, max_len: int, layer_idx: int = 0) -> Cache:
     A model alternating local and global attention needs a different cache per
     layer, which is why this takes a layer index.
     """
-    from mt.config import ModelConfig
+    from mllm.config import ModelConfig
 
     assert isinstance(cfg, ModelConfig)
     att = cfg.attention

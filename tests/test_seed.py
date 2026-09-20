@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 
-from mt.utils.seed import set_determinism
+from mllm.utils.seed import set_determinism
 
 
 def test_same_seed_same_tensors():

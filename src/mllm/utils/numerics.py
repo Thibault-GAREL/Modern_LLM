@@ -10,15 +10,15 @@ Three places in this library always compute in fp32 and cast back:
 1. **Normalization.** The mean square of a whole feature vector is a
    reduction. In fp16 the result matches an all-fp16 computation bit for bit
    rather than the fp32 one, which is why ``torch.nn.functional.rms_norm`` is
-   not used as a fast path here. See ``mt.layers.norm``.
+   not used as a fast path here. See ``mllm.layers.norm``.
 
 2. **The RoPE cos and sin tables.** The angle for position ``m`` in the
    slowest band is tiny, and rounding it in bf16 makes the relative-position
-   property drift after a few thousand tokens. See ``mt.layers.pos``.
+   property drift after a few thousand tokens. See ``mllm.layers.pos``.
 
 3. **Logits and softmax.** A softmax over a large vocabulary in bf16 loses the
    tail outright, and ``logsumexp`` over such logits is exactly the reduction
-   bf16 handles worst. See ``mt.layers.heads``.
+   bf16 handles worst. See ``mllm.layers.heads``.
 
 Two of these are reductions over a large dimension and one is a small angle
 accumulated over many positions. That is the pattern to look for when adding

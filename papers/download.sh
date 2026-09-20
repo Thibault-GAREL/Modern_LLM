@@ -13,7 +13,7 @@ download() {
     return 0
   fi
   for url in "https://export.arxiv.org/pdf/$id" "https://arxiv.org/pdf/$id"; do
-    curl -sL --fail --retry 2 -A "modern-transformer-refs/0.1" -o "$out" "$url"
+    curl -sL --fail --retry 2 -A "modern-llm-refs/0.1" -o "$out" "$url"
     if head -c 4 "$out" 2>/dev/null | grep -q "%PDF"; then
       echo "OK   $id  $name  ($(du -h "$out" | cut -f1))"
       sleep 3

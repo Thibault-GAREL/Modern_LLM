@@ -1,5 +1,5 @@
 <svg viewBox="0 0 1000 1400" xmlns="http://www.w3.org/2000/svg" width="1000" height="1400" preserveAspectRatio="xMidYMid meet">
-  <title>modern-transformer, the modern decoder block with every deviation behind a config flag</title>
+  <title>Modern LLM, the modern decoder block with every deviation behind a config flag</title>
   <!--
   NODE REGISTRY (x, y, w, h)
   OUTPUT     280 100  300 48    LMHEAD   280 200 300 64    MTP      680 200 230 64
@@ -32,8 +32,8 @@
   <rect width="1000" height="1400" fill="#FFFFFF"/>
 
   <!-- Title -->
-  <text x="40" y="50" font-size="18" font-weight="700" fill="#111827">modern-transformer · the modern decoder block</text>
-  <text x="40" y="71" font-size="12" font-weight="400" fill="#6B7280">every deviation from Vaswani et al. (2017) sits behind one config flag · src/mt</text>
+  <text x="40" y="50" font-size="18" font-weight="700" fill="#111827">Modern LLM · the modern decoder block</text>
+  <text x="40" y="71" font-size="12" font-weight="400" fill="#6B7280">every deviation from Vaswani et al. (2017) sits behind one config flag · src/mllm</text>
   <line x1="40" y1="80" x2="330" y2="80" stroke="#3B82F6" stroke-width="2" stroke-linecap="round"/>
 
   <!-- ====== OUTPUT ====== -->

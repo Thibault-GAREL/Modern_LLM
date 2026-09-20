@@ -23,9 +23,9 @@ import math
 
 from torch import nn, optim
 
-from mt.config import ModelConfig, TrainConfig
-from mt.init import width_multiplier
-from mt.layers.norm import DyT, LayerNorm, RMSNorm
+from mllm.config import ModelConfig, TrainConfig
+from mllm.init import width_multiplier
+from mllm.layers.norm import DyT, LayerNorm, RMSNorm
 
 NORM_TYPES = (RMSNorm, LayerNorm, DyT, nn.LayerNorm)
 

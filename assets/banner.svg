@@ -1,5 +1,5 @@
 <svg viewBox="0 0 1000 360" xmlns="http://www.w3.org/2000/svg" width="1000" height="360" preserveAspectRatio="xMidYMid meet">
-  <title>modern-transformer, from the 2017 Transformer to the current open-weights defaults</title>
+  <title>Modern LLM, from the 2017 Transformer to the current open-weights defaults</title>
   <!--
   NODE REGISTRY (x, y, w, h)
   LEFT  70 120 350 170   (120..290)
@@ -23,7 +23,7 @@
   <rect width="1000" height="360" fill="#FFFFFF"/>
 
   <!-- Title -->
-  <text x="500" y="56" font-size="26" font-weight="700" fill="#111827" text-anchor="middle">modern-transformer</text>
+  <text x="500" y="56" font-size="26" font-weight="700" fill="#111827" text-anchor="middle">Modern LLM</text>
   <text x="500" y="80" font-size="12" font-weight="400" fill="#6B7280" text-anchor="middle">a PyTorch ablation library for everything that changed since Attention Is All You Need</text>
   <line x1="450" y1="100" x2="550" y2="100" stroke="#3B82F6" stroke-width="2" stroke-linecap="round"/>
 

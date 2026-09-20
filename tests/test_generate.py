@@ -11,9 +11,9 @@ from __future__ import annotations
 import pytest
 import torch
 
-from mt.cache import build_model_cache
-from mt.config import AttentionConfig, FFNConfig, ModelConfig
-from mt.generate import (
+from mllm.cache import build_model_cache
+from mllm.config import AttentionConfig, FFNConfig, ModelConfig
+from mllm.generate import (
     SamplingConfig,
     SpeculativeStats,
     apply_repetition_penalty,
@@ -28,8 +28,8 @@ from mt.generate import (
     top_p_filter,
     verify_draft,
 )
-from mt.model import Transformer
-from mt.utils.seed import set_determinism
+from mllm.model import Transformer
+from mllm.utils.seed import set_determinism
 
 VOCAB = 32
 

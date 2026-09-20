@@ -167,7 +167,7 @@ def test_written_file_loads_as_a_dataset(tmp_path, fake_hub):
     """The two halves of the pipeline must actually fit together."""
     import torch
 
-    from mt.data import TokenDataset
+    from mllm.data import TokenDataset
 
     run(tmp_path, {"en": 7_000, "fr": 3_000}, fake_hub)
     (tmp_path / "meta.json").write_text(

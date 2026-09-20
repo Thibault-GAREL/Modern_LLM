@@ -28,8 +28,8 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from mt.config import ModelConfig, MoEConfig
-from mt.layers.ffn import build_ffn, compute_d_ff
+from mllm.config import ModelConfig, MoEConfig
+from mllm.layers.ffn import build_ffn, compute_d_ff
 
 
 @dataclass

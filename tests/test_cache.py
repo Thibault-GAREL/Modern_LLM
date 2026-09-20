@@ -10,9 +10,9 @@ from __future__ import annotations
 import pytest
 import torch
 
-from mt.cache import KVCache, LatentCache, RingCache, build_cache
-from mt.config import AttentionConfig, ModelConfig
-from mt.utils.seed import set_determinism
+from mllm.cache import KVCache, LatentCache, RingCache, build_cache
+from mllm.config import AttentionConfig, ModelConfig
+from mllm.utils.seed import set_determinism
 
 HEADS, DIM = 2, 8
 

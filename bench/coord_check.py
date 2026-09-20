@@ -22,11 +22,11 @@ from pathlib import Path
 import torch
 from tqdm import tqdm
 
-from mt.config import AttentionConfig, FFNConfig, InitConfig, ModelConfig, MuPConfig, TrainConfig
-from mt.init import init_weights
-from mt.model import Transformer
-from mt.optim import build_param_groups
-from mt.utils.seed import set_determinism
+from mllm.config import AttentionConfig, FFNConfig, InitConfig, ModelConfig, MuPConfig, TrainConfig
+from mllm.init import init_weights
+from mllm.model import Transformer
+from mllm.optim import build_param_groups
+from mllm.utils.seed import set_determinism
 
 WIDTHS = (128, 256, 512, 1024)
 BASE_WIDTH = 128

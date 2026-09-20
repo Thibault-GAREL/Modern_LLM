@@ -5,7 +5,7 @@ Chaque fichier est nommé `<arxiv_id>_<nom_court>.pdf`. Les PDFs sont gitignoré
 cet index suffit pour les retrouver : `https://arxiv.org/abs/<arxiv_id>`. Pour les retélécharger,
 relancer le script de téléchargement (voir README).
 
-Convention : chaque module de `src/mt/` cite dans sa docstring le papier correspondant
+Convention : chaque module de `src/mllm/` cite dans sa docstring le papier correspondant
 (auteurs, année, arXiv id) et l'écart concret par rapport au Transformer de 2017.
 
 ## 00_foundation

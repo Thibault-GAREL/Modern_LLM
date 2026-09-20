@@ -1,6 +1,6 @@
 """Download, tokenize and mix a bilingual corpus into flat token files.
 
-Produces the layout ``mt.data.TokenDataset`` expects::
+Produces the layout ``mllm.data.TokenDataset`` expects::
 
     <out>/train.bin   token ids as uint16
     <out>/val.bin

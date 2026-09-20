@@ -11,8 +11,8 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from mt.config import NormConfig
-from mt.layers.norm import (
+from mllm.config import NormConfig
+from mllm.layers.norm import (
     DyT,
     LayerNorm,
     NormedResidual,
@@ -22,7 +22,7 @@ from mt.layers.norm import (
     layer_norm_reference,
     rms_norm_reference,
 )
-from mt.utils.seed import set_determinism
+from mllm.utils.seed import set_determinism
 
 
 @pytest.fixture(autouse=True)

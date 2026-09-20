@@ -1,4 +1,4 @@
-"""Configuration schema for modern-transformer.
+"""Configuration schema for modern-llm.
 
 Nested Pydantic v2 models validating every architectural flag. Each config
 class maps to one component family (attention, positions, FFN/MoE, norms,

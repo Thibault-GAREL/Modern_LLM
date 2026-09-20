@@ -1,4 +1,4 @@
-# 🧬 modern-transformer
+# 🧬 Modern LLM
 
 ![Python](https://img.shields.io/badge/python-3.12-blue.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1%2Bcu121-red.svg)
@@ -10,7 +10,7 @@
 ![Contributions](https://img.shields.io/badge/contributions-welcome-orange.svg)
 
 <p align="center">
-  <img src="assets/banner.svg" alt="modern-transformer, from the 2017 Transformer to the current open-weights defaults" width="820">
+  <img src="assets/banner.svg" alt="Modern LLM, from the 2017 Transformer to the current open-weights defaults" width="820">
 </p>
 
 ---
@@ -68,7 +68,7 @@ that switches it on.
 
 | Component | What it does | Replaces | Optimizes | Paper | Flag |
 |---|---|---|---|---|---|
-| **Byte-level BPE, large vocabulary** | Merges frequent byte pairs into single tokens, so a common word costs one forward pass instead of five | BPE at 32k to 37k | ⚡ 🎯 | GPT-2, 2019 | upstream of `mt` |
+| **Byte-level BPE, large vocabulary** | Merges frequent byte pairs into single tokens, so a common word costs one forward pass instead of five | BPE at 32k to 37k | ⚡ 🎯 | GPT-2, 2019 | upstream of `mllm` |
 | **Tied embeddings** | Reuses the input lookup table as the output projection, since both map between the same tokens and the same vector space | a separate output matrix | 💾 | [Press and Wolf, 2016](https://arxiv.org/abs/1608.05859) | `model.tie_embeddings` |
 
 *A larger vocabulary means fewer tokens for the same text. It costs a bigger embedding table, which is exactly why tying matters more the smaller the model.*
@@ -281,7 +281,7 @@ model with **2.2x the parameters, 1.9x the deployed size, and a worse loss** tha
 the winner. It is slower, larger, harder to debug, and less accurate.
 
 ```bash
-python -m mt.train --config configs/best.yaml
+python -m mllm.train --config configs/best.yaml
 ```
 
 ---
@@ -331,7 +331,7 @@ MHA at this context does not fit on any single machine, which is the whole reaso
 
   📉 **muP is width invariant to 1.03x, standard init to 31.63x.** Measured by the coordinate check over `d_model` in 128 to 1024 on the real model, see [docs/mup_coord_check.md](docs/mup_coord_check.md). Running it on a stand-in MLP instead gave 1.31x, so a coordinate check really has to measure the model you run.
 
-  ⚠️ **bf16 is requested, fp16 is used.** On a compute capability 7.5 GPU `is_bf16_supported()` returns True while bf16 is emulated and slower. `mt.utils.numerics.resolve_precision` detects this and falls back, printing why.
+  ⚠️ **bf16 is requested, fp16 is used.** On a compute capability 7.5 GPU `is_bf16_supported()` returns True while bf16 is emulated and slower. `mllm.utils.numerics.resolve_precision` detects this and falls back, printing why.
 
   ⚠️ **bf16 is not free on every GPU.** A GTX 1660 Ti reports `is_bf16_supported() == True`, but that is emulation, the compute capability is 7.5. The local profiles therefore use fp16, and bf16 is kept for the pod-sized MoE profile.
 
@@ -387,7 +387,7 @@ The decoder block, with every switchable component and the config flag that cont
 │   ├── mla_long_ctx.yaml        # MLA + YaRN + attention sinks
 │   └── gemma_style.yaml         # alternated local and global attention + QK-norm + softcap
 │
-├── src/mt/
+├── src/mllm/
 │   ├── config.py                # Pydantic schema, all the cross-field validation
 │   ├── model.py                 # Transformer, Block, forward and losses          ✅
 │   ├── layers/
@@ -524,7 +524,7 @@ otherwise the much lighter `tokenizers`, which downloads a 32 kB
 
 ```bash
 # a two minute smoke test on synthetic bytes, no data needed
-python -m mt.train --config configs/base.yaml --max-steps 200
+python -m mllm.train --config configs/base.yaml --max-steps 200
 ```
 
 ⚠️ **`best.yaml` and `bilingual_100m.yaml` are sized for a 24 GB card** and
@@ -534,10 +534,10 @@ which is how they are shrunk to fit:
 
 ```bash
 # the measured best architecture, on a 6 GB GPU
-python -m mt.train --config configs/best.yaml --max-steps 500     --set train.micro_batch_size=4 --set train.grad_accum_steps=1     --set train.seq_len=1024
+python -m mllm.train --config configs/best.yaml --max-steps 500     --set train.micro_batch_size=4 --set train.grad_accum_steps=1     --set train.seq_len=1024
 
 # a pod-sized MoE profile, on any GPU
-python -m mt.train --config configs/moe_1b_a200m.yaml     --set model.d_model=128 --set model.moe.n_experts=8 --max-steps 100
+python -m mllm.train --config configs/moe_1b_a200m.yaml     --set model.d_model=128 --set model.moe.n_experts=8 --max-steps 100
 ```
 
 Reduce `micro_batch_size` before `seq_len`: raising `grad_accum_steps` by the
@@ -547,8 +547,8 @@ For a real bilingual run, prepare the corpus first (about an hour, 12 GB):
 
 ```bash
 python scripts/prepare_data.py --out data/bilingual --tokens 6e9 --en-ratio 0.7
-python -m mt.train --config configs/bilingual_100m.yaml --data-dir data/bilingual
-python -m mt.train --config configs/bilingual_100m.yaml     --data-dir data/bilingual --resume outputs/models/<run>/ckpt.pt
+python -m mllm.train --config configs/bilingual_100m.yaml --data-dir data/bilingual
+python -m mllm.train --config configs/bilingual_100m.yaml     --data-dir data/bilingual --resume outputs/models/<run>/ckpt.pt
 ```
 
 Every loss term is logged separately to `metrics.jsonl`, plus the routing
@@ -581,7 +581,7 @@ sweep is long enough that losing it to an interruption is a real cost.
 ### 5. Read a config from Python
 
 ```python
-from mt.config import Config
+from mllm.config import Config
 
 cfg = Config.from_yaml("configs/best.yaml")
 print(cfg.model.attention.kind, cfg.model.head_dim)   # mqa 64
@@ -717,8 +717,8 @@ choice rather than an oversight.
 | **Quantization**, post-training and quantization-aware | Compresses a finished model. Orthogonal to which components that model is built from. |
 | **Custom kernels** beyond what PyTorch ships | A fused kernel changes the memory traffic, not the result. The one exception, FlashAttention, is reachable through SDPA and the `[flash]` extra. |
 | **Post-training** entirely: supervised fine-tuning, RLHF, reasoning traces | A separate field with its own ablations. This repo stops at the pretrained model. |
-| **The agent harness**: the loop, tool calling, context and cache management | Wraps a finished model instead of changing what it computes. A trained `mt` checkpoint predicts tokens, it takes a harness to make it read files and run commands. Documented in [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), which drives this library as its local provider. |
-| **Tokenizer training** | Upstream of the architecture. `mt` takes token ids, and `bench/ablation.py` works on raw bytes precisely so no tokenizer choice contaminates a comparison. |
+| **The agent harness**: the loop, tool calling, context and cache management | Wraps a finished model instead of changing what it computes. A trained `mllm` checkpoint predicts tokens, it takes a harness to make it read files and run commands. Documented in [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), which drives this library as its local provider. |
+| **Tokenizer training** | Upstream of the architecture. `mllm` takes token ids, and `bench/ablation.py` works on raw bytes precisely so no tokenizer choice contaminates a comparison. |
 | **Anything about closed models** | GPT, Claude and Gemini architectures are not published. What is written here comes from open-weights papers, and community inference is labelled as such. |
 
 Two more limits inside what *is* covered, stated because they would otherwise
@@ -745,7 +745,7 @@ This project is based on the papers listed in [papers/_INDEX.md](papers/_INDEX.m
 
 Related work of mine, in the order they were built:
 
-- 🤖 [Language Models from Scratch](https://github.com/Thibault-GAREL/Language_Models), a bigram model and a 2017-style Transformer written from scratch. This repo picks up exactly where that one stops.
-- 🔁 [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), the **harness**, the program wrapped around a trained model. A checkpoint from this library predicts tokens and nothing else. The harness is the loop that gives it tools, feeds the results back as new turns, and manages the context window and its cache, which is what turns a model into an agent. It uses `mt` as its local provider.
+- 🤖 [Original LLM](https://github.com/Thibault-GAREL/Language_Models), a bigram model and a 2017-style Transformer written from scratch. This repo picks up exactly where that one stops.
+- 🔁 [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), the **harness**, the program wrapped around a trained model. A checkpoint from this library predicts tokens and nothing else. The harness is the loop that gives it tools, feeds the results back as new turns, and manages the context window and its cache, which is what turns a model into an agent. It uses `mllm` as its local provider.
 
 Code created by me 😎, Thibault GAREL - [Github](https://github.com/Thibault-GAREL)

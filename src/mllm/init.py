@@ -32,7 +32,7 @@ import math
 import torch
 from torch import nn
 
-from mt.config import ModelConfig
+from mllm.config import ModelConfig
 
 RESIDUAL_PROJ_ATTR = "_mt_residual_proj"
 OUTPUT_LAYER_ATTR = "_mt_output_layer"

@@ -6,10 +6,10 @@ import pytest
 import torch
 from torch import nn
 
-from mt.config import AttentionConfig, ModelConfig, MuPConfig
-from mt.init import is_output_layer
-from mt.layers.heads import LMHead, MTPHeads, MTPModule
-from mt.utils.seed import set_determinism
+from mllm.config import AttentionConfig, ModelConfig, MuPConfig
+from mllm.init import is_output_layer
+from mllm.layers.heads import LMHead, MTPHeads, MTPModule
+from mllm.utils.seed import set_determinism
 
 D_MODEL, VOCAB, SEQ, BATCH = 32, 50, 8, 2
 

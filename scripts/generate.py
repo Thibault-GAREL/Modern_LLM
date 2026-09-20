@@ -23,10 +23,10 @@ from pathlib import Path
 
 import torch
 
-from mt.config import Config
-from mt.generate import SamplingConfig, generate
-from mt.model import Transformer
-from mt.utils.numerics import pick_device
+from mllm.config import Config
+from mllm.generate import SamplingConfig, generate
+from mllm.model import Transformer
+from mllm.utils.numerics import pick_device
 
 REPO = Path(__file__).resolve().parents[1]
 DEFAULT_PROMPTS = [

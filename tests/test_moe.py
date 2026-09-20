@@ -10,10 +10,10 @@ from __future__ import annotations
 import pytest
 import torch
 
-from mt.config import FFNConfig, ModelConfig, MoEConfig
-from mt.layers.ffn import build_ffn
-from mt.layers.moe import MoE, Router, load_balancing_loss, router_z_loss
-from mt.utils.seed import set_determinism
+from mllm.config import FFNConfig, ModelConfig, MoEConfig
+from mllm.layers.ffn import build_ffn
+from mllm.layers.moe import MoE, Router, load_balancing_loss, router_z_loss
+from mllm.utils.seed import set_determinism
 
 D_MODEL = 64
 

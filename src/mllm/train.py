@@ -9,9 +9,9 @@ mixed precision with fp32 master weights, gradient accumulation, gradient
 clipping, the aux-loss-free balancing step, optional activation checkpointing,
 and JSONL logging of every loss term separately.
 
-    python -m mt.train --config configs/best.yaml
-    python -m mt.train --config configs/bilingual_100m.yaml --data-dir data/bilingual
-    python -m mt.train --config configs/best.yaml --resume outputs/.../ckpt.pt
+    python -m mllm.train --config configs/best.yaml
+    python -m mllm.train --config configs/bilingual_100m.yaml --data-dir data/bilingual
+    python -m mllm.train --config configs/best.yaml --resume outputs/.../ckpt.pt
 """
 
 from __future__ import annotations
@@ -24,13 +24,13 @@ import torch
 import yaml
 from torch import nn
 
-from mt.config import Config
-from mt.data import ByteDataset, build_dataset
-from mt.model import Transformer
-from mt.optim import build_optimizer, build_scheduler
-from mt.run_logger import RunLogger
-from mt.utils.numerics import autocast_dtype, pick_device, resolve_precision
-from mt.utils.seed import set_determinism
+from mllm.config import Config
+from mllm.data import ByteDataset, build_dataset
+from mllm.model import Transformer
+from mllm.optim import build_optimizer, build_scheduler
+from mllm.run_logger import RunLogger
+from mllm.utils.numerics import autocast_dtype, pick_device, resolve_precision
+from mllm.utils.seed import set_determinism
 
 
 def train(
@@ -39,7 +39,7 @@ def train(
     data_path: Path | None = None,
     data_dir: Path | None = None,
     resume: Path | None = None,
-    model_name: str = "modern-transformer",
+    model_name: str = "modern-llm",
     mlflow: bool = True,
 ) -> Path:
     """Run the training loop and return the directory holding the checkpoints.
@@ -279,7 +279,7 @@ def main() -> None:
     p.add_argument(
         "--resume", type=Path, default=None, help="checkpoint to continue from"
     )
-    p.add_argument("--name", type=str, default="modern-transformer", help="run name")
+    p.add_argument("--name", type=str, default="modern-llm", help="run name")
     p.add_argument("--no-mlflow", action="store_true")
     p.add_argument("--max-steps", type=int, default=None)
     p.add_argument("--seq-len", type=int, default=None)

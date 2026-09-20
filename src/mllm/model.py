@@ -18,14 +18,14 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from torch.utils.checkpoint import checkpoint
 
-from mt.config import ModelConfig
-from mt.init import init_weights
-from mt.layers.attention import Attention
-from mt.layers.ffn import MatFormerMLP, build_ffn
-from mt.layers.heads import LMHead, MTPHeads
-from mt.layers.moe import MoE
-from mt.layers.norm import NormedResidual, build_norm
-from mt.layers.pos import build_position
+from mllm.config import ModelConfig
+from mllm.init import init_weights
+from mllm.layers.attention import Attention
+from mllm.layers.ffn import MatFormerMLP, build_ffn
+from mllm.layers.heads import LMHead, MTPHeads
+from mllm.layers.moe import MoE
+from mllm.layers.norm import NormedResidual, build_norm
+from mllm.layers.pos import build_position
 
 
 @dataclass

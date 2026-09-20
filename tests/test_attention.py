@@ -10,11 +10,11 @@ from __future__ import annotations
 import pytest
 import torch
 
-from mt.cache import KVCache, LatentCache
-from mt.config import AttentionConfig, ModelConfig, PositionConfig
-from mt.layers.attention import Attention, build_attention_mask, repeat_kv
-from mt.layers.pos import build_position
-from mt.utils.seed import set_determinism
+from mllm.cache import KVCache, LatentCache
+from mllm.config import AttentionConfig, ModelConfig, PositionConfig
+from mllm.layers.attention import Attention, build_attention_mask, repeat_kv
+from mllm.layers.pos import build_position
+from mllm.utils.seed import set_determinism
 
 D_MODEL, N_HEADS, SEQ, BATCH = 128, 8, 12, 2
 
@@ -305,7 +305,7 @@ def test_softcap_bounds_the_logits_and_warns_once():
     att = AttentionConfig(kind="gqa", n_heads=N_HEADS, n_kv_heads=2, logit_softcap=5.0)
     attn, pos = make(att)
     assert attn.needs_naive_path
-    import mt.layers.attention as mod
+    import mllm.layers.attention as mod
 
     mod._SOFTCAP_WARNED = False
     with pytest.warns(RuntimeWarning, match="softcap"):
@@ -403,7 +403,7 @@ def test_qk_norm_order_matters_once_gains_are_learned():
 
 def test_mup_scale_uses_inverse_head_dim():
     att = AttentionConfig(kind="gqa", n_heads=N_HEADS, n_kv_heads=2, scale="mup")
-    from mt.config import MuPConfig
+    from mllm.config import MuPConfig
 
     attn, _ = make(att, mup=MuPConfig(enabled=True, base_d_model=64))
     assert attn.scale == 1.0 / attn.head_dim

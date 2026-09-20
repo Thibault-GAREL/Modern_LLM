@@ -1,4 +1,4 @@
-"""modern-transformer (mt): reference implementations of the documented
+"""modern-llm (mllm): reference implementations of the documented
 deviations from the vanilla Transformer (Vaswani et al., 2017, arXiv
 1706.03762) used in current frontier models.
 

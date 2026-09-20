@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from mt.config import (
+from mllm.config import (
     AttentionConfig,
     Config,
     ModelConfig,
@@ -92,7 +92,7 @@ def test_moe_first_k_dense_bounded():
 
 
 def test_mup_requires_mup_scale():
-    from mt.config import MuPConfig
+    from mllm.config import MuPConfig
 
     with pytest.raises(ValidationError, match="mup"):
         ModelConfig(mup=MuPConfig(enabled=True))

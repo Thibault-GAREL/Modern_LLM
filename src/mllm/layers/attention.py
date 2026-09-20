@@ -23,9 +23,9 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from mt.config import ModelConfig
-from mt.init import mark_residual_projection
-from mt.layers.norm import QKNorm, RMSNorm
+from mllm.config import ModelConfig
+from mllm.init import mark_residual_projection
+from mllm.layers.norm import QKNorm, RMSNorm
 
 _SOFTCAP_WARNED = False
 

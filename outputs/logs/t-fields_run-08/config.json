@@ -1,0 +1,110 @@
+{
+  "model": {
+    "d_model": 32,
+    "n_layers": 2,
+    "vocab_size": 256,
+    "max_seq_len": 32,
+    "bias": false,
+    "dropout": 0.0,
+    "tie_embeddings": true,
+    "mtp_depth": 0,
+    "mtp_lambda": 0.3,
+    "attention": {
+      "kind": "gqa",
+      "n_heads": 4,
+      "n_kv_heads": 2,
+      "head_dim": null,
+      "kv_lora_rank": 512,
+      "q_lora_rank": 1536,
+      "qk_rope_head_dim": 64,
+      "qk_nope_head_dim": 128,
+      "v_head_dim": 128,
+      "qk_norm": false,
+      "qk_norm_after_rope": false,
+      "logit_softcap": null,
+      "sliding_window": null,
+      "global_every": null,
+      "attn_sinks": 0,
+      "learned_sink": false,
+      "scale": "1/sqrt(d)",
+      "dropout": 0.0
+    },
+    "position": {
+      "kind": "rope",
+      "rope_theta": 10000.0,
+      "rope_style": "half",
+      "scaling": null
+    },
+    "ffn": {
+      "kind": "swiglu",
+      "activation": "gelu",
+      "d_ff": null,
+      "mult": null,
+      "multiple_of": 1,
+      "mat_granularities": null
+    },
+    "moe": {
+      "enabled": false,
+      "n_experts": 64,
+      "top_k": 6,
+      "n_shared_experts": 2,
+      "d_ff_expert": null,
+      "first_k_dense": 1,
+      "gate": "softmax",
+      "balance": "aux_loss_free",
+      "aux_loss_alpha": 0.01,
+      "seq_aux_alpha": 0.0001,
+      "router_z_loss_coef": 0.001,
+      "bias_update_gamma": 0.001,
+      "capacity_factor": null
+    },
+    "norm": {
+      "kind": "rmsnorm",
+      "placement": "pre",
+      "eps": 1e-05,
+      "unit_offset": false,
+      "dyt_alpha_init": 0.5
+    },
+    "init": {
+      "scheme": "fixed",
+      "std": 0.02,
+      "scaled_residual": true
+    },
+    "mup": {
+      "enabled": false,
+      "base_d_model": 256
+    }
+  },
+  "train": {
+    "lr": 0.003,
+    "betas": [
+      0.9,
+      0.95
+    ],
+    "weight_decay": 0.1,
+    "max_grad_norm": 1.0,
+    "z_loss_coef": 0.0001,
+    "schedule": "cosine",
+    "warmup_steps": 2,
+    "decay_steps": null,
+    "min_lr_ratio": 0.1,
+    "max_steps": 12,
+    "micro_batch_size": 4,
+    "grad_accum_steps": 1,
+    "seq_len": 16,
+    "precision": "fp32",
+    "compile": false,
+    "activation_checkpointing": false,
+    "seed": 42,
+    "log_interval": 4,
+    "eval_interval": 500,
+    "ckpt_interval": 1000,
+    "out_dir": "outputs"
+  },
+  "data/source": "synthetic bytes (no --data given)",
+  "data/dir": "",
+  "runtime/device": "cuda",
+  "runtime/precision": "fp32",
+  "runtime/params": 30816,
+  "runtime/params_active": 30816
+}

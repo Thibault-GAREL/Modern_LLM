@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 import torch
 
-from mt.cache import ModelCache, build_model_cache
-from mt.config import (
+from mllm.cache import ModelCache, build_model_cache
+from mllm.config import (
     AttentionConfig,
     Config,
     FFNConfig,
@@ -15,8 +15,8 @@ from mt.config import (
     NormConfig,
     PositionConfig,
 )
-from mt.model import Block, Transformer
-from mt.utils.seed import set_determinism
+from mllm.model import Block, Transformer
+from mllm.utils.seed import set_determinism
 
 VOCAB, SEQ, BATCH = 64, 12, 2
 
@@ -282,7 +282,7 @@ def test_incremental_decoding_with_alternating_windows():
     model = Transformer(cfg).eval()
     idx = torch.randint(0, VOCAB, (1, SEQ))
     cache = build_model_cache(cfg, max_len=SEQ)
-    from mt.cache import KVCache, RingCache
+    from mllm.cache import KVCache, RingCache
 
     assert isinstance(cache[0], RingCache) and isinstance(cache[1], KVCache)
     with torch.no_grad():

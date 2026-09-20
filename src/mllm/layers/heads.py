@@ -21,9 +21,9 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from mt.config import ModelConfig
-from mt.init import mark_output_layer, output_logit_multiplier
-from mt.layers.norm import RMSNorm
+from mllm.config import ModelConfig
+from mllm.init import mark_output_layer, output_logit_multiplier
+from mllm.layers.norm import RMSNorm
 
 
 class LMHead(nn.Module):

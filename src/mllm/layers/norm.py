@@ -20,7 +20,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from mt.config import NormConfig
+from mllm.config import NormConfig
 
 # ---------------------------------------------------------------------------
 # Reference implementations (readable, used only by the equivalence tests)
@@ -229,7 +229,7 @@ class NormedResidual(nn.Module):
     Post-norm puts a normalization on the residual highway itself, which is
     why the original Transformer needed a learning rate warmup to train at
     all. Pre-norm leaves the highway untouched, at the cost of a growing
-    residual stream (this is what the scaled residual init in ``mt.init``
+    residual stream (this is what the scaled residual init in ``mllm.init``
     compensates). Sandwich norm keeps the pre-norm highway and also bounds
     each sub-block output.
 

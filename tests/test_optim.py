@@ -6,10 +6,10 @@ import pytest
 import torch
 from torch import nn
 
-from mt.config import AttentionConfig, FFNConfig, ModelConfig, MuPConfig, TrainConfig
-from mt.model import Transformer
-from mt.optim import build_optimizer, build_param_groups, build_scheduler, lr_multiplier
-from mt.utils.seed import set_determinism
+from mllm.config import AttentionConfig, FFNConfig, ModelConfig, MuPConfig, TrainConfig
+from mllm.model import Transformer
+from mllm.optim import build_optimizer, build_param_groups, build_scheduler, lr_multiplier
+from mllm.utils.seed import set_determinism
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +44,7 @@ def test_no_weight_decay_on_norms_biases_or_embeddings():
     decayed = {id(p) for g in groups if g["weight_decay"] > 0 for p in g["params"]}
     exempt = {id(p) for g in groups if g["weight_decay"] == 0 for p in g["params"]}
 
-    from mt.optim import NORM_TYPES
+    from mllm.optim import NORM_TYPES
 
     for module in model.modules():
         if isinstance(module, NORM_TYPES):
@@ -80,7 +80,7 @@ def test_tied_weights_are_counted_once():
 
 
 def test_router_weight_is_decayed_like_a_matrix():
-    from mt.config import MoEConfig
+    from mllm.config import MoEConfig
 
     model_cfg = tiny(moe=MoEConfig(enabled=True, n_experts=4, top_k=2, first_k_dense=0))
     model = Transformer(model_cfg)
@@ -92,7 +92,7 @@ def test_router_weight_is_decayed_like_a_matrix():
 
 def test_expert_bias_never_reaches_the_optimizer():
     """It is updated by a rule, so an optimizer touching it would fight that."""
-    from mt.config import MoEConfig
+    from mllm.config import MoEConfig
 
     model_cfg = tiny(moe=MoEConfig(enabled=True, n_experts=4, top_k=2, first_k_dense=0))
     model = Transformer(model_cfg)

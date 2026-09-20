@@ -30,7 +30,7 @@ from typing import Protocol, runtime_checkable
 import torch
 from torch import Tensor, nn
 
-from mt.config import PositionConfig, RopeScalingConfig
+from mllm.config import PositionConfig, RopeScalingConfig
 
 # ---------------------------------------------------------------------------
 # Interface

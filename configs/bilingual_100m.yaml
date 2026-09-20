@@ -16,7 +16,7 @@
 # 500x the data. This is an architecture exercise, not an assistant.
 #
 #   python scripts/prepare_data.py --out data/bilingual --tokens 6e9 --en-ratio 0.7
-#   python -m mt.train --config configs/bilingual_100m.yaml --data-dir data/bilingual
+#   python -m mllm.train --config configs/bilingual_100m.yaml --data-dir data/bilingual
 
 model:
   d_model: 768

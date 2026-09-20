@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from mt.config import Config
+from mllm.config import Config
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "configs"
 CONFIG_FILES = sorted(CONFIG_DIR.glob("*.yaml"))

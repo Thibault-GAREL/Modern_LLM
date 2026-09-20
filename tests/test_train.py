@@ -7,9 +7,9 @@ import json
 import pytest
 import torch
 
-from mt.config import AttentionConfig, Config, FFNConfig, ModelConfig, TrainConfig
-from mt.train import ByteDataset, apply_overrides, train
-from mt.utils.seed import set_determinism
+from mllm.config import AttentionConfig, Config, FFNConfig, ModelConfig, TrainConfig
+from mllm.train import ByteDataset, apply_overrides, train
+from mllm.utils.seed import set_determinism
 
 
 @pytest.fixture(autouse=True)
@@ -124,8 +124,8 @@ def test_metrics_contain_every_expected_field():
 
 def test_gradient_accumulation_matches_a_larger_batch():
     """Accumulating must be equivalent to one bigger batch, not merely similar."""
-    from mt.model import Transformer
-    from mt.optim import build_optimizer
+    from mllm.model import Transformer
+    from mllm.optim import build_optimizer
 
     cfg = tiny_config()
     set_determinism(1)
@@ -159,7 +159,7 @@ def test_checkpoint_round_trips():
     assert {"model", "optimizer", "scheduler", "scaler"} <= set(ckpt)
 
     restored = Config.model_validate(ckpt["config"])
-    from mt.model import Transformer
+    from mllm.model import Transformer
 
     model = Transformer(restored.model)
     model.load_state_dict(ckpt["model"])

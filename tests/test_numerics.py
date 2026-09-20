@@ -10,17 +10,17 @@ from __future__ import annotations
 import pytest
 import torch
 
-from mt.config import AttentionConfig, FFNConfig, ModelConfig
-from mt.layers.norm import RMSNorm
-from mt.layers.pos import RoPE
-from mt.model import Transformer
-from mt.utils.numerics import (
+from mllm.config import AttentionConfig, FFNConfig, ModelConfig
+from mllm.layers.norm import RMSNorm
+from mllm.layers.pos import RoPE
+from mllm.model import Transformer
+from mllm.utils.numerics import (
     autocast_dtype,
     relative_error,
     resolve_precision,
     supports_bf16,
 )
-from mt.utils.seed import set_determinism
+from mllm.utils.seed import set_determinism
 
 VOCAB = 64
 

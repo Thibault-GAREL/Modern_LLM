@@ -12,10 +12,10 @@ import pytest
 import torch
 from pydantic import ValidationError
 
-from mt.config import AttentionConfig, FFNConfig, ModelConfig, NormConfig, PositionConfig
-from mt.layers.ffn import GatedMLP, MatFormerMLP, build_ffn
-from mt.model import Transformer
-from mt.utils.seed import set_determinism
+from mllm.config import AttentionConfig, FFNConfig, ModelConfig, NormConfig, PositionConfig
+from mllm.layers.ffn import GatedMLP, MatFormerMLP, build_ffn
+from mllm.model import Transformer
+from mllm.utils.seed import set_determinism
 
 D_MODEL, VOCAB = 64, 32
 GRANULARITIES = [1.0, 0.5, 0.25]

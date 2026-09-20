@@ -13,8 +13,8 @@ import math
 import pytest
 import torch
 
-from mt.config import PositionConfig, RopeScalingConfig
-from mt.layers.pos import (
+from mllm.config import PositionConfig, RopeScalingConfig
+from mllm.layers.pos import (
     ALiBi,
     LearnedAbsolute,
     NoPE,
@@ -27,7 +27,7 @@ from mt.layers.pos import (
     convert_rope_style,
     rope_style_permutation,
 )
-from mt.utils.seed import set_determinism
+from mllm.utils.seed import set_determinism
 
 HEAD_DIM = 64
 

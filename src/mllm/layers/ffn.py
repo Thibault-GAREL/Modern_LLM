@@ -15,8 +15,8 @@ from __future__ import annotations
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from mt.config import FFNConfig, ModelConfig
-from mt.init import mark_residual_projection
+from mllm.config import FFNConfig, ModelConfig
+from mllm.init import mark_residual_projection
 
 GATED_KINDS = ("swiglu", "geglu", "reglu")
 

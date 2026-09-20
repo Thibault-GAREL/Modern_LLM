@@ -27,7 +27,7 @@ from pathlib import Path
 import torch
 from tqdm import tqdm
 
-from mt.config import (
+from mllm.config import (
     AttentionConfig,
     FFNConfig,
     InitConfig,
@@ -37,10 +37,10 @@ from mt.config import (
     PositionConfig,
     TrainConfig,
 )
-from mt.model import Transformer
-from mt.optim import build_optimizer, build_scheduler
-from mt.utils.numerics import autocast_dtype, pick_device, resolve_precision
-from mt.utils.seed import set_determinism
+from mllm.model import Transformer
+from mllm.optim import build_optimizer, build_scheduler
+from mllm.utils.numerics import autocast_dtype, pick_device, resolve_precision
+from mllm.utils.seed import set_determinism
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -70,7 +70,7 @@ def load_corpus(seq_len: int, *, refresh: bool = False) -> tuple[torch.Tensor, t
 
     if not CORPUS_CACHE.exists():
         parts = []
-        for pattern in ("src/mt/**/*.py", "tests/*.py", "bench/*.py", "docs/*.md", "*.md"):
+        for pattern in ("src/mllm/**/*.py", "tests/*.py", "bench/*.py", "docs/*.md", "*.md"):
             for path in sorted(REPO.glob(pattern)):
                 parts.append(path.read_bytes())
         blob = b"\n".join(parts)

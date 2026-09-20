@@ -19,11 +19,11 @@ import time
 import torch
 from tqdm import tqdm
 
-from mt.cache import build_model_cache
-from mt.config import AttentionConfig, FFNConfig, ModelConfig
-from mt.model import Transformer
-from mt.utils.numerics import autocast_dtype, pick_device, resolve_precision
-from mt.utils.seed import set_determinism
+from mllm.cache import build_model_cache
+from mllm.config import AttentionConfig, FFNConfig, ModelConfig
+from mllm.model import Transformer
+from mllm.utils.numerics import autocast_dtype, pick_device, resolve_precision
+from mllm.utils.seed import set_determinism
 
 
 def variants(n_heads: int) -> dict[str, AttentionConfig]:

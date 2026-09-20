@@ -12,10 +12,10 @@ import numpy as np
 import pytest
 import torch
 
-from mt.config import AttentionConfig, Config, FFNConfig, ModelConfig, TrainConfig
-from mt.data import ByteDataset, TokenDataset, build_dataset
-from mt.train import load_checkpoint, save_checkpoint, train
-from mt.utils.seed import set_determinism
+from mllm.config import AttentionConfig, Config, FFNConfig, ModelConfig, TrainConfig
+from mllm.data import ByteDataset, TokenDataset, build_dataset
+from mllm.train import load_checkpoint, save_checkpoint, train
+from mllm.utils.seed import set_determinism
 
 VOCAB = 512
 
@@ -222,8 +222,8 @@ def test_no_validation_without_a_prepared_corpus(tmp_path):
 
 def test_checkpoint_carries_scheduler_and_scaler(corpus, tmp_path):
     """Restoring weights alone restarts the schedule from zero, silently."""
-    from mt.model import Transformer
-    from mt.optim import build_optimizer, build_scheduler
+    from mllm.model import Transformer
+    from mllm.optim import build_optimizer, build_scheduler
 
     cfg = tiny_config()
     cfg.model.vocab_size = VOCAB

@@ -56,7 +56,7 @@ target vocabulary of 37000 for English to German.*
 the output softmax huge. On a small model those two can dominate the parameter
 count, which is exactly why `tie_embeddings` matters more the smaller you go.
 
-**Not in this repo.** The tokenizer is upstream of the architecture, so `mt` takes
+**Not in this repo.** The tokenizer is upstream of the architecture, so `mllm` takes
 token ids as input and stops there.
 
 ---

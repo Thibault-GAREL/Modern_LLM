@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "modern-transformer"
+name = "modern-llm"
 version = "0.1.0"
 description = "Reference PyTorch library of documented deviations from the 2017 Transformer, built for ablations"
 readme = "README.md"
@@ -33,7 +33,7 @@ bench = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mt"]
+packages = ["src/mllm"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

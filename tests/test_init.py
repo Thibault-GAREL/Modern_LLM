@@ -14,8 +14,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from mt.config import InitConfig, ModelConfig, MuPConfig
-from mt.init import (
+from mllm.config import InitConfig, ModelConfig, MuPConfig
+from mllm.init import (
     init_weights,
     is_residual_projection,
     mark_output_layer,
@@ -23,8 +23,8 @@ from mt.init import (
     output_logit_multiplier,
     width_multiplier,
 )
-from mt.layers.norm import RMSNorm
-from mt.utils.seed import set_determinism
+from mllm.layers.norm import RMSNorm
+from mllm.utils.seed import set_determinism
 
 
 class ToyBlock(nn.Module):
@@ -133,7 +133,7 @@ def test_width_multiplier_and_output_multiplier():
     assert width_multiplier(off) == 1.0
     assert output_logit_multiplier(off) == 1.0
 
-    from mt.config import AttentionConfig
+    from mllm.config import AttentionConfig
 
     on = ModelConfig(
         d_model=512,
@@ -151,7 +151,7 @@ def test_mup_coord_check_at_init(d_model: int):
     This is the init half of the coordinate check. The training half needs
     the muP optimizer groups and lives in bench/coord_check.py.
     """
-    from mt.config import AttentionConfig
+    from mllm.config import AttentionConfig
 
     n_layers = 4
     cfg = ModelConfig(
@@ -202,7 +202,7 @@ def test_mup_output_layer_uses_a_different_exponent():
     So the std is divided by sqrt(mult) for hidden matrices and by mult for the
     output one. Confusing the two leaves a visible spread in the coord check.
     """
-    from mt.config import AttentionConfig
+    from mllm.config import AttentionConfig
 
     mult = 4.0
     cfg = ModelConfig(
