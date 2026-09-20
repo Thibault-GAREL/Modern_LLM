@@ -13,10 +13,6 @@
   <img src="assets/Titre-Modern_LLM.png" alt="Modern LLM" width="50%">
 </p>
 
-<p align="center">
-  <img src="assets/banner.svg" alt="Modern LLM, from the 2017 Transformer to the current open-weights defaults" width="820">
-</p>
-
 ---
 
 ## 📝 Project Description
@@ -28,6 +24,10 @@ It is an **ablation library, not a model**. Every component ships with a **naive
 The goal is to answer a question that papers rarely answer directly: **which of these techniques actually earn their complexity, and at what scale**.
 
 ✅ **All seven milestones are done and green.** The library trains, generates and benchmarks end to end, and [docs/ablations.md](docs/ablations.md) reports what each component was actually worth.
+
+<p align="center">
+  <img src="assets/banner.svg" alt="Modern LLM, from the 2017 Transformer to the current open-weights defaults" width="820">
+</p>
 
 ---
 
