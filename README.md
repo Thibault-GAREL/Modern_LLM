@@ -10,6 +10,10 @@
 ![Contributions](https://img.shields.io/badge/contributions-welcome-orange.svg)
 
 <p align="center">
+  <img src="assets/Titre-Modern_LLM.png" alt="Modern LLM" width="50%">
+</p>
+
+<p align="center">
   <img src="assets/banner.svg" alt="Modern LLM, from the 2017 Transformer to the current open-weights defaults" width="820">
 </p>
 
