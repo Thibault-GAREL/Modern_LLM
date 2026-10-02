@@ -17,17 +17,18 @@
 
 ## 📝 Project Description
 
-Nobody trains the Transformer of **Vaswani et al. (2017)** anymore. Every open-weights model released since **LLaMA** replaced its normalization, its positions, its attention and its feed-forward, one paper at a time. This library rebuilds those deviations in **PyTorch**, each one behind a config flag, so they can be switched on and off and compared.
-
-It is an **ablation library, not a model**. Every component ships with a **naive reference implementation** (readable, slow) plus the fast path, and a numerical equivalence test between the two. That equivalence test is the whole point, it is what separates a reference implementation from a plausible one.
-
-The goal is to answer a question that papers rarely answer directly: **which of these techniques actually earn their complexity, and at what scale**.
-
-✅ **All seven milestones are done and green.** The library trains, generates and benchmarks end to end, and [docs/ablations.md](docs/ablations.md) reports what each component was actually worth.
+Nobody trains the Transformer of **Vaswani et al. (2017)** anymore: every open-weights model since **LLaMA** replaced its normalization, its positions, its attention and its feed-forward. This **PyTorch** library rebuilds those deviations, each one behind a config flag, to measure **which ones actually earn their complexity, and at what scale**.
 
 <p align="center">
   <img src="assets/banner.svg" alt="Modern LLM, from the 2017 Transformer to the current open-weights defaults" width="820">
 </p>
+
+<details>
+<summary>📖 <b>Why an ablation library, and not a model</b></summary>
+
+Every component ships with a **naive reference implementation** (readable, slow) plus the fast path, and a numerical equivalence test between the two. That equivalence test is the whole point, it is what separates a reference implementation from a plausible one.
+
+</details>
 
 ---
 
@@ -37,25 +38,15 @@ The goal is to answer a question that papers rarely answer directly: **which of 
 
   🔬 **Naive path and fast path for every component**, with an equivalence test between them
 
-  📐 **Five coherent profiles** shipped in `configs/`, from the vanilla 2017 block to a Gemma-style alternated model
+  📐 **Coherent profiles** shipped in `configs/`, from the vanilla 2017 block to a Gemma-style alternated model
 
   🚫 **No config activates everything at once**, because a model that stacks every brick is the counter-example this repo teaches against
 
   📄 **29 reference papers downloaded and indexed**, each module docstring citing its authors, year and arXiv id
 
-  🎯 **Validation that fails loudly**, a typo in a YAML file raises instead of being silently ignored
-
-  🧪 **Whole test suite runs on CPU in under 4 seconds**, so ablations stay cheap to check
-
 ---
 
 ## 🗂️ The deviations, one block of the 2017 architecture at a time
-
-Each table below is one box of the original figure. For every component: **what
-it actually does**, what it replaces, what it optimizes, the paper, and the flag
-that switches it on.
-
-**What the tags mean**
 
 | Tag | Optimizes | The question it answers |
 |---|---|---|
@@ -66,9 +57,10 @@ that switches it on.
 | 📏 | **Long context** | does it still work past the training length |
 | 🔧 | **Hyperparameter transfer** | can small model settings be reused at scale |
 
----
+Each block below is one box of the original figure. For every component: what it does, what it replaces, what it optimizes, the paper, and the flag that switches it on.
 
-### 🟠 Input embedding
+<details>
+<summary>🟠 <b>Input embedding</b> · BPE, tied embeddings</summary>
 
 | Component | What it does | Replaces | Optimizes | Paper | Flag |
 |---|---|---|---|---|---|
@@ -77,9 +69,10 @@ that switches it on.
 
 *A larger vocabulary means fewer tokens for the same text. It costs a bigger embedding table, which is exactly why tying matters more the smaller the model.*
 
----
+</details>
 
-### 🟡 Positional encoding
+<details>
+<summary>🟡 <b>Positional encoding</b> · RoPE, ALiBi, NoPE, YaRN</summary>
 
 *2017: a fixed sinusoidal signal added to the embedding once, at the input. Position is absolute and competes with content inside the residual stream, where it dilutes with depth.*
 
@@ -95,9 +88,10 @@ that switches it on.
 
 *RoPE alone does not extend context, it generalizes poorly past its training length. Everything from Position Interpolation down exists to patch that one problem afterwards.*
 
----
+</details>
 
-### 🔵 Multi-Head Attention
+<details>
+<summary>🔵 <b>Multi-Head Attention</b> · MQA, GQA, MLA, sliding window</summary>
 
 *2017: 8 heads, each with its own K and V projection. Everything below changed for the KV cache, not for quality.*
 
@@ -122,9 +116,10 @@ that switches it on.
 
 *Decoding one token reads the whole cache and does little arithmetic with it, so the step is bound by memory bandwidth rather than by FLOPs. That is why shrinking the cache buys speed.*
 
----
+</details>
 
-### ⚪ Add & Norm
+<details>
+<summary>⚪ <b>Add & Norm</b> · pre-norm, RMSNorm, DyT</summary>
 
 *2017: `LayerNorm(x + Sublayer(x))`, that is post-norm. A normalization sits on the residual path itself, which is why the original needed a 4000 step warmup to train at all.*
 
@@ -138,9 +133,10 @@ that switches it on.
 
 *Every statistic here must be computed in fp32 and cast back. This repo verifies that `torch.nn.functional.rms_norm` does not do it.*
 
----
+</details>
 
-### 🟣 Feed Forward
+<details>
+<summary>🟣 <b>Feed Forward</b> · SwiGLU, MoE, MatFormer</summary>
 
 *2017: `max(0, xW₁ + b₁)W₂ + b₂` with `d_ff = 4·d`. Two thirds of the parameters of a block live here.*
 
@@ -157,18 +153,20 @@ that switches it on.
 
 *On **MatFormer**, since two things are called Matryoshka: [Matryoshka Representation Learning](https://arxiv.org/abs/2205.13147) nests **embedding dimensions** for retrieval (what Nomic v1.5 does), while **MatFormer** nests **FFN widths** inside the Transformer (what Gemma 3n ships as E2B and E4B). Only the second applies to a decoder LLM, and only it is implemented here.*
 
----
+</details>
 
-### 🟢 Output head and objective
+<details>
+<summary>🟢 <b>Output head and objective</b> · z-loss, MTP</summary>
 
 | Component | What it does | Replaces | Optimizes | Paper | Flag |
 |---|---|---|---|---|---|
 | **Output z-loss** | Penalizes the squared `logsumexp` of the logits, keeping them small enough that bf16 does not lose the tail of the softmax | unbounded logits | 🛡️ | [ST-MoE, 2022](https://arxiv.org/abs/2202.08906) | `train.z_loss_coef` |
 | **Multi-Token Prediction** | Adds modules predicting tokens `t+2`, `t+3` and so on, so each position supervises several predictions instead of one. The modules are dropped at inference, or reused as a draft model | predicting one next token | 🎯 ⚡ | [Gloeckle et al., 2024](https://arxiv.org/abs/2404.19737) | `model.mtp_depth` |
 
----
+</details>
 
-### 🔧 Optimization
+<details>
+<summary>🔧 <b>Optimization</b> · AdamW, WSD, muP</summary>
 
 *Not part of the architecture, but the 2017 recipe changed completely.*
 
@@ -181,9 +179,10 @@ that switches it on.
 | **muP** | Scales initialization and learning rate with width so activations keep the same magnitude at any `d_model`, which makes a learning rate tuned on a small model correct on a large one | retuning the learning rate at every width | 🔧 | [Yang et al., 2022](https://arxiv.org/abs/2203.03466) | `mup.enabled` |
 | **bf16 with fp32 master weights** | Runs the matmuls in reduced precision while keeping a full precision copy of the weights for the updates, so small gradients are not rounded away | fp32 everywhere | ⚡ 🛡️ | [Micikevicius et al., 2017](https://arxiv.org/abs/1710.03740) | `train.precision` |
 
----
+</details>
 
-### ⏩ Inference
+<details>
+<summary>⏩ <b>Inference</b> · KV cache, speculative decoding</summary>
 
 *Absent from the 2017 paper, which never discusses autoregressive decoding cost.*
 
@@ -194,14 +193,11 @@ that switches it on.
 | **Latent cache** | Stores MLA's single compressed vector per token instead of every key and value head | storing every KV head | 💾 | [DeepSeek-V2, 2024](https://arxiv.org/abs/2405.04434) | `cache.LatentCache` |
 | **Speculative decoding** | A cheap model drafts `gamma` tokens, the target verifies all of them in **one** pass, and a rejection rule keeps a correct prefix. Done right the output distribution is **exactly** the target's, so it is free latency | one forward pass per generated token | ⚡ | [Leviathan et al., 2022](https://arxiv.org/abs/2211.17192) | `generate.py` |
 
+</details>
+
 ---
 
 ## 📊 What the components were actually worth
-
-The whole point of the library. Full method, caveats and five more tables in
-**[docs/ablations.md](docs/ablations.md)**. Below: 6 layers, `d_model` 256, byte
-level, **2.46M tokens per variant**, identical seed, one config field changed at
-a time, corpus frozen at sha `69a497f3a393`.
 
 **Deviating from the 2017 block**
 
@@ -227,6 +223,18 @@ a time, corpus frozen at sha `69a497f3a393`.
 | sliding window 128 | 1.8778 | **+0.018** | 4.78M | 4.78M |
 | **everything at once** | **1.8725** | **+0.013** | **10.70M** | 7.67M |
 
+**RoPE alone is 97% of the total gain**, and stacking every brick gives **2.2x the parameters and a worse loss** than the plain socle.
+
+<details>
+<summary>🔬 <b>How it was measured</b></summary>
+
+Full method, caveats and five more tables in **[docs/ablations.md](docs/ablations.md)**. The setup: 6 layers, `d_model` 256, byte level, **2.46M tokens per variant**, identical seed, one config field changed at a time, corpus frozen at sha `69a497f3a393`.
+
+</details>
+
+<details>
+<summary>📐 <b>What these numbers say</b></summary>
+
 **Positions dominate everything else.** RoPE alone is 97% of the total gain, and
 nothing else in the sweep is within an order of magnitude of it. Pre-norm is the
 second real win, for a placement change that costs nothing.
@@ -240,9 +248,32 @@ not have, so at this scale they are pure complexity.
 Which combination actually wins is the next section, and it is not the one you
 get by adding these rows up.
 
+</details>
+
 ---
 
 ## 🏆 The best configuration, measured
+
+| Slot | Choice | Measured effect |
+|---|---|---|
+| **Positions** | RoPE, `theta` 10000 | **-2.015** loss |
+| **Add & Norm** | RMSNorm, pre-norm | **-0.551** loss |
+| **Attention** | **MQA** (`n_kv_heads: 1`) | **-0.044** loss |
+| **Score computation** | QK-norm **off** | **+0.030** if switched on |
+| **Feed-forward** | SwiGLU, `8/3 d` | -0.001 loss |
+| **Head** | **MTP depth 2** | **-0.044** loss |
+| **Init** | scaled residual | -0.001 loss |
+| **Optimizer** | AdamW, WSD schedule | not ablated |
+
+**Result**: `val loss 1.8039` against `1.8599` for the plain modern socle, with
+**4.10M deployed parameters against 4.78M**. Better and smaller.
+
+```bash
+python -m mllm.train --config configs/best.yaml
+```
+
+<details>
+<summary>🧭 <b>Why each choice, and not the alternative</b></summary>
 
 `configs/best.yaml`. **Not** assembled by adding up the winning flags, which is
 how people build models that are worse than their parts. Every combination below
@@ -250,19 +281,21 @@ was trained on the same frozen corpus for the same token budget, and this one
 won on **both axes at once**: lowest held-out loss *and* smallest deployed
 model.
 
-| Slot | Choice | Measured effect | Why this and not the alternative |
-|---|---|---|---|
-| **Positions** | RoPE, `theta` 10000 | **-2.015** loss | The largest single effect measured anywhere in this repo. Raise `theta` to 500000 past ~8k context |
-| **Add & Norm** | RMSNorm, pre-norm | **-0.551** loss | Pre-norm removes the warmup requirement outright. RMSNorm adds -0.033 and is cheaper |
-| **Attention** | **MQA** (`n_kv_heads: 1`) | **-0.044** loss | Beat GQA g=4 at equal depth (1.8039 against 1.8244) *and* gives the smallest KV cache of any dense variant |
-| **Score computation** | QK-norm **off** | **+0.030** if switched on | Helps against the socle (-0.008) and on a GQA + MTP-1 model (-0.036), but *costs* on this combination. See the note below |
-| **Feed-forward** | SwiGLU, `8/3 d` | -0.001 loss | No measurable effect at 6 layers. Kept on the published evidence at scale, since it costs nothing |
-| **Head** | **MTP depth 2** | **-0.044** loss | Best single addition. The modules are dropped at inference, so the deployed model is *smaller* than the trained one |
-| **Init** | scaled residual | -0.001 loss | No depth to correct at 6 layers. Kept because a 12 layer model has some |
-| **Optimizer** | AdamW, WSD schedule | not ablated | WSD keeps the token budget open, so a pod can be stopped and the run extended |
+| Slot | Why this and not the alternative |
+|---|---|
+| **Positions** | The largest single effect measured anywhere in this repo. Raise `theta` to 500000 past ~8k context |
+| **Add & Norm** | Pre-norm removes the warmup requirement outright. RMSNorm adds -0.033 and is cheaper |
+| **Attention** | Beat GQA g=4 at equal depth (1.8039 against 1.8244) *and* gives the smallest KV cache of any dense variant |
+| **Score computation** | Helps against the socle (-0.008) and on a GQA + MTP-1 model (-0.036), but *costs* on this combination. See the note below |
+| **Feed-forward** | No measurable effect at 6 layers. Kept on the published evidence at scale, since it costs nothing |
+| **Head** | Best single addition. The modules are dropped at inference, so the deployed model is *smaller* than the trained one |
+| **Init** | No depth to correct at 6 layers. Kept because a 12 layer model has some |
+| **Optimizer** | WSD keeps the token budget open, so a pod can be stopped and the run extended |
 
-**Result**: `val loss 1.8039` against `1.8599` for the plain modern socle, with
-**4.10M deployed parameters against 4.78M**. Better and smaller.
+</details>
+
+<details>
+<summary>📐 <b>Why QK-norm is off, the most instructive row</b></summary>
 
 **Why QK-norm is off is the most instructive row in the table.** It improves the
 socle, and improves a GQA plus MTP-1 model even more. Assembling a config by
@@ -271,7 +304,10 @@ costs `+0.030`, more than MTP gained. Individually good changes do not compose,
 which is why every row above comes from a measured combination rather than a sum
 of measured parts.
 
-### What is deliberately absent, and what it cost to find out
+</details>
+
+<details>
+<summary>🚫 <b>What is deliberately absent, and what it cost to find out</b></summary>
 
 | Not in the best config | Measured | Verdict |
 |---|---|---|
@@ -284,39 +320,17 @@ That last row is the point of the whole repository. Stacking every brick gives a
 model with **2.2x the parameters, 1.9x the deployed size, and a worse loss** than
 the winner. It is slower, larger, harder to debug, and less accurate.
 
-```bash
-python -m mllm.train --config configs/best.yaml
-```
+</details>
 
 ---
 
 ## Example Outputs
 
-The full test suite. Every component has a naive reference implementation and a
-fast path, plus a test asserting the two agree numerically:
+<p align="center">
+  <img src="docs/assets/mup_coord_check.png" alt="muP coordinate check, standard parametrization against muP" width="820">
+</p>
 
-```
-$ pytest
-........................................................................ [ 89%]
-..................................                                       [100%]
-322 passed in 33.28s
-```
-
-The six shipped profiles, each one a coherent selection rather than a pile of
-features:
-
-| Profile | Attention | Positions | Norm | FFN |
-|---|---|---|---|---|
-| `base.yaml` | MHA | sinusoidal | LayerNorm, post | ReLU, 4·d |
-| `llama_style_150m.yaml` | GQA 16 / 4 | RoPE, theta 500k | RMSNorm, pre | SwiGLU |
-| `moe_1b_a200m.yaml` | GQA 16 / 4 | RoPE | RMSNorm, pre | MoE, 64 experts, top 6 |
-| `mla_long_ctx.yaml` | MLA, rank 512 | RoPE + YaRN ×4 | RMSNorm, pre | SwiGLU |
-| `gemma_style.yaml` | GQA + sliding window | RoPE | RMSNorm, sandwich | GeGLU |
-| **`best.yaml`** | **MQA + MTP depth 2** | **RoPE** | **RMSNorm, pre** | **SwiGLU** |
-
-### 📝 Notes and observations
-
-  🧮 **What the KV cache actually costs.** From `bench/kv_memory.py`, on a 32 layer model with `d_model` 4096 and 32 heads, serving 32k of context at batch 8 in fp16:
+📉 **muP is width invariant to 1.03x, standard init to 31.63x**, measured by the coordinate check over `d_model` in 128 to 1024 on the real model ([docs/mup_coord_check.md](docs/mup_coord_check.md)).
 
 | variant | bytes/token | total cache | vs MHA |
 |---|---|---|---|
@@ -327,45 +341,62 @@ features:
 | MQA | 16.0 KB | 4.0 GB | 32.0x |
 | SWA w=4096 (GQA g=4) | 128.0 KB | 4.0 GB | bounded |
 
-MHA at this context does not fit on any single machine, which is the whole reason this slot changed. Note the sliding window row: its cost per token is unchanged, the saving comes entirely from the cache no longer growing past the window. And MLA is not free memory, it beats a dense cache only below 2.2 KV heads at this head dim, so MQA is still smaller.
+🧮 **What the KV cache actually costs**, from `bench/kv_memory.py`, on a 32 layer model with `d_model` 4096 and 32 heads, serving 32k of context at batch 8 in fp16.
+
+<details>
+<summary>📝 <b>Notes and observations</b></summary>
+
+  🧮 **Reading the KV cache table.** MHA at this context does not fit on any single machine, which is the whole reason this slot changed. Note the sliding window row: its cost per token is unchanged, the saving comes entirely from the cache no longer growing past the window. And MLA is not free memory, it beats a dense cache only below 2.2 KV heads at this head dim, so MQA is still smaller.
 
   🔎 **`F.rms_norm` cannot be used as a fast path.** In torch 2.5.1 it computes in the input dtype, and in fp16 it matches an all-fp16 computation bit for bit rather than the fp32 one. A test locks this in and will fail the day torch fixes it, see `test_torch_rms_norm_does_not_upcast`.
 
   🧭 **What context extension actually buys, measured.** Training at 2048 and serving at 8192, the slowest RoPE band reaches 1.0924 rad instead of the 0.2731 rad it ever saw, so it is extrapolating into unseen angles. Position Interpolation and YaRN both bring it back to exactly 0.2731. The difference is the cost: PI squashes all 32 frequency bands, YaRN leaves 9 of them untouched because they already completed enough periods during training. Its attention temperature comes out at 1.1386, which is `0.1 · ln(4) + 1`.
 
-  📉 **muP is width invariant to 1.03x, standard init to 31.63x.** Measured by the coordinate check over `d_model` in 128 to 1024 on the real model, see [docs/mup_coord_check.md](docs/mup_coord_check.md). Running it on a stand-in MLP instead gave 1.31x, so a coordinate check really has to measure the model you run.
+  📉 **A coordinate check has to measure the model you run.** Running it on a stand-in MLP instead of the real model gave 1.31x.
 
-  ⚠️ **bf16 is requested, fp16 is used.** On a compute capability 7.5 GPU `is_bf16_supported()` returns True while bf16 is emulated and slower. `mllm.utils.numerics.resolve_precision` detects this and falls back, printing why.
-
-  ⚠️ **bf16 is not free on every GPU.** A GTX 1660 Ti reports `is_bf16_supported() == True`, but that is emulation, the compute capability is 7.5. The local profiles therefore use fp16, and bf16 is kept for the pod-sized MoE profile.
+  ⚠️ **bf16 is requested, fp16 is used.** A GTX 1660 Ti (compute capability 7.5) reports `is_bf16_supported() == True`, but that is emulation, and it is slower. `mllm.utils.numerics.resolve_precision` detects this and falls back, printing why. The local profiles therefore use fp16, and bf16 is kept for the pod-sized MoE profile.
 
   🎛️ **The defaults of the schema are the modern baseline** (GQA, RoPE, RMSNorm pre-norm, SwiGLU, no bias). The 2017 model is not a default that got overridden, it lives entirely inside `base.yaml`.
+
+</details>
 
 ---
 
 ## ⚙️ How it works
 
-  🧾 **Everything starts from a config.** Nested Pydantic models describe the architecture, and `extra="forbid"` turns a YAML typo into an immediate error instead of a silently ignored key.
+  🧾 **Everything starts from a config**, nested Pydantic models where a YAML typo raises instead of being silently ignored
+
+  🧱 **One `Attention` class** dispatches MHA, MQA, GQA and MLA, which is what makes an ablation a single field change
+
+  🔍 **Each component is written twice**, a naive version that reads like the paper and a fast one, with a test asserting they agree
+
+  🌡️ **fp32 where it is not negotiable** (normalization, RoPE tables, softmax and logits), the number one source of bf16 divergence
+
+  📊 **Router entropy, per-expert load and drop rate are logged** for MoE, because a router collapse is invisible in the loss curve alone
+
+<details>
+<summary>✅ <b>Cross-field validation and the two code paths</b></summary>
 
   ✅ **Validation runs across fields, not just types.** `n_heads` must be a multiple of `n_kv_heads`, MLA refuses an explicit `n_kv_heads` because its latent cache replaces KV heads, a sliding window is required before layers can alternate, and MTP needs tied embeddings because it shares the LM head.
 
-  🧱 **One `Attention` class, not one class per variant.** MHA, MQA, GQA and MLA are dispatched internally, which is what makes an ablation a single field change.
+  🧾 **`extra="forbid"` on every config class** is what turns a YAML typo into an immediate error.
 
-  🔍 **Each component is written twice.** The naive version reads like the paper, the fast version uses `F.scaled_dot_product_attention`, and a test asserts they agree numerically.
+  🔍 **The fast path uses `F.scaled_dot_product_attention`**, the naive one spells the maths out.
 
-  🌡️ **fp32 where it is not negotiable.** Normalization, the RoPE cos and sin tables, and the softmax and logits are computed in fp32 then cast back, which is the number one source of bf16 divergence.
+  🌡️ **The fp32 statistics are cast back** to the working dtype once computed.
 
-  📊 **Metrics that catch silent failures.** Router entropy, per-expert token share and drop rate are logged for MoE, because a router collapse is invisible in the loss curve alone.
+</details>
 
 ---
 
 ## 🗺️ Architecture Diagram
 
-The decoder block, with every switchable component and the config flag that controls it:
-
 ![Architecture Diagram](assets/architecture.svg)
 
-**Default socle** (what you get without asking for anything):
+The decoder block, with every switchable component and the config flag that controls it.
+
+<details>
+<summary>📐 <b>Default socle</b> (what you get without asking for anything)</summary>
 
 - RoPE, `theta = 10000` (500000 for long context)
 - GQA with `n_kv_heads = n_heads / 4`
@@ -375,9 +406,28 @@ The decoder block, with every switchable component and the config flag that cont
 - Output projections divided by `sqrt(2 · n_layers)` at init
 - AdamW `betas = (0.9, 0.95)`, weight decay 0.1 excluded from norms, biases and embeddings
 
+</details>
+
+<details>
+<summary>🗂️ <b>The shipped profiles</b>, each one a coherent selection rather than a pile of features</summary>
+
+| Profile | Attention | Positions | Norm | FFN |
+|---|---|---|---|---|
+| `base.yaml` | MHA | sinusoidal | LayerNorm, post | ReLU, 4·d |
+| `llama_style_150m.yaml` | GQA 16 / 4 | RoPE, theta 500k | RMSNorm, pre | SwiGLU |
+| `moe_1b_a200m.yaml` | GQA 16 / 4 | RoPE | RMSNorm, pre | MoE, 64 experts, top 6 |
+| `mla_long_ctx.yaml` | MLA, rank 512 | RoPE + YaRN ×4 | RMSNorm, pre | SwiGLU |
+| `gemma_style.yaml` | GQA + sliding window | RoPE | RMSNorm, sandwich | GeGLU |
+| **`best.yaml`** | **MQA + MTP depth 2** | **RoPE** | **RMSNorm, pre** | **SwiGLU** |
+
+</details>
+
 ---
 
 ## 📂 Repository structure
+
+<details>
+<summary>📂 <b>Show the file tree</b></summary>
 
 ```bash
 ├── assets/                      # For the README
@@ -427,37 +477,44 @@ The decoder block, with every switchable component and the config flag that cont
 └── README.md
 ```
 
+</details>
+
 ---
 
 ## 💻 Run it on Your PC
 
+Clone the repository and install dependencies:
 ```bash
 git clone https://github.com/Thibault-GAREL/LLMs_modern_from_scratch.git
 cd LLMs_modern_from_scratch
+
+python -m venv .venv # if you don't have a virtual environment
+source .venv/bin/activate   # Linux / macOS
+.venv\Scripts\activate      # Windows
+
+pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121   # CUDA GPU only, skip it on CPU
 pip install -e ".[dev]"
+
+pytest                                                            # checks the whole library
+python -m mllm.train --config configs/base.yaml --max-steps 200   # two minute smoke test, no data needed
 ```
 
-⚠️ That pulls the **CPU** build of PyTorch. For a CUDA GPU, install torch first:
+⚠️ Without the torch line, `pip install -e` pulls the **CPU** build of PyTorch. `best.yaml` and `bilingual_100m.yaml` are sized for a **24 GB card**, open "Train something" below to shrink them.
 
-```bash
-pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
-pip install -e ".[dev]"
-```
-
-Everything below runs on CPU except where a GPU is named.
-
----
-
-### 1. Run the tests
-
-The fastest way to check the whole library. Every component has a naive
-reference implementation and a fast path, and a test asserting the two agree
-numerically.
+<details>
+<summary>🧪 <b>Run the tests</b></summary>
 
 ```bash
 pytest                      # the full suite, under a minute
 pytest -q --durations=10    # with the slowest tests listed
 pytest tests/test_pos.py    # one component at a time
+```
+
+```
+$ pytest
+........................................................................ [ 89%]
+..................................                                       [100%]
+322 passed in 33.28s
 ```
 
 The interesting ones to read, because each pins down a claim rather than a shape:
@@ -472,11 +529,12 @@ The interesting ones to read, because each pins down a claim rather than a shape
 | `test_single_expert_moe_equals_the_dense_ffn` | a degenerate MoE is exactly the FFN it replaces |
 | `test_cached_decoding_matches_an_uncached_full_forward` | the KV cache changes nothing but the cost |
 
----
+</details>
 
-### 2. Try the trained model
+<details>
+<summary>💬 <b>Try the trained model</b></summary>
 
-The 111M bilingual model from the section above. Its weights are not in the
+The 111M bilingual model. Its weights are not in the
 repository (423 MB), so this needs a checkpoint you trained or received.
 
 **Ask what comes next.** A language model computes exactly one thing, a
@@ -522,9 +580,10 @@ The tokenizer backend is detected automatically: `transformers` if installed,
 otherwise the much lighter `tokenizers`, which downloads a 32 kB
 `tokenizer.json` once into `.cache/`.
 
----
+</details>
 
-### 3. Train something
+<details>
+<summary>🏋️ <b>Train something</b></summary>
 
 ```bash
 # a two minute smoke test on synthetic bytes, no data needed
@@ -563,9 +622,10 @@ a collapsing router goes unnoticed. Curves land in MLflow:
 mlflow ui        # from the repository root
 ```
 
----
+</details>
 
-### 4. Reproduce the measurements
+<details>
+<summary>📊 <b>Reproduce the measurements</b></summary>
 
 Every number in [docs/ablations.md](docs/ablations.md) comes from these:
 
@@ -580,9 +640,10 @@ python bench/coord_check.py                 # muP width invariance, GPU
 `ablation.py` writes after every variant and accepts `--resume`, because a
 sweep is long enough that losing it to an interruption is a real cost.
 
----
+</details>
 
-### 5. Read a config from Python
+<details>
+<summary>🐍 <b>Read a config from Python</b></summary>
 
 ```python
 from mllm.config import Config
@@ -594,15 +655,18 @@ print(cfg.model.attention.kind, cfg.model.head_dim)   # mqa 64
 A typo in a YAML file raises immediately rather than being silently ignored,
 which is what `extra="forbid"` on every config class buys.
 
----
+</details>
 
-### 6. Get the reference papers
+<details>
+<summary>📄 <b>Get the reference papers</b></summary>
 
 The 29 PDFs are gitignored because they are heavy, this restores them:
 
 ```bash
 bash papers/download.sh
 ```
+
+</details>
 
 ---
 
@@ -612,7 +676,8 @@ The library takes token ids and stops there, so the corpus is a separate
 decision. It is also the one that matters most: at small scale, **data quality
 moves the loss more than any architecture flag in the table above**.
 
-### The datasets worth knowing
+<details>
+<summary>📚 <b>The datasets worth knowing</b></summary>
 
 | Dataset | Size | What it is | Use it when |
 |---|---|---|---|
@@ -629,7 +694,10 @@ about 28 GB on disk. It covers a Chinchilla-optimal run at 150M parameters three
 times over, downloads in minutes, and is the same data the SmolLM family was
 built on.
 
-### How many tokens
+</details>
+
+<details>
+<summary>🔢 <b>How many tokens</b></summary>
 
 | Rule | Ratio | For a 150M model | Why |
 |---|---|---|---|
@@ -640,7 +708,10 @@ Chinchilla answers "cheapest way to reach this loss". It is the wrong question
 for a model you intend to run, which is why every recent small model is heavily
 overtrained.
 
-### The one piece this repository does not provide
+</details>
+
+<details>
+<summary>🔤 <b>The one piece this repository does not provide</b></summary>
 
 A tokenizer. Training one is a separate project, and it is not where the
 interesting decisions are. **Reuse an existing one**, for instance
@@ -649,14 +720,11 @@ GPT-2's at 50k. The ablations in `docs/ablations.md` sidestep this entirely by
 running at byte level with a 256 entry vocabulary, precisely so no tokenizer
 choice contaminates an architecture comparison.
 
+</details>
+
 ---
 
 ## 💰 Training this on RunPod without spending much
-
-Estimates below use `6 * params * tokens` FLOPs and a conservative 25% model
-FLOPs utilization, which is realistic for a small model where the GPU spends a
-lot of its time waiting on memory. **Measure a short run before committing**:
-the numbers move by a factor of two with sequence length and batch size.
 
 | Goal | Model | Tokens | GPU | Time | Cost |
 |---|---|---|---|---|---|
@@ -664,6 +732,16 @@ the numbers move by a factor of two with sequence length and batch size.
 | **The run worth doing** | **150M** | **3B** (Chinchilla) | **RTX 4090 24 GB** | **~18 h** | **~$6** |
 | A genuinely usable small model | 150M | 15B (100x) | RTX 4090 24 GB | ~4 days | ~$30 |
 | Going bigger | 500M | 10B | A100 80 GB | ~2 to 3 days | ~$80 |
+
+The 150M run at Chinchilla costs **about the price of a coffee** on an RTX 4090. Verify current prices in the RunPod UI, they move.
+
+<details>
+<summary>📐 <b>How the estimates were made, and why a 4090</b></summary>
+
+Estimates below use `6 * params * tokens` FLOPs and a conservative 25% model
+FLOPs utilization, which is realistic for a small model where the GPU spends a
+lot of its time waiting on memory. **Measure a short run before committing**:
+the numbers move by a factor of two with sequence length and batch size.
 
 At roughly **$0.34/hour for an RTX 4090 on Community Cloud** and $1.39/hour for
 an A100 80 GB, the 150M run at Chinchilla costs about the price of a coffee.
@@ -674,7 +752,10 @@ Verify current prices in the RunPod UI, they move.
 80 GB of VRAM you will not use buys only the extra bandwidth, which is not worth
 the multiple at this size.
 
-**Practical setup**, and each of these has cost someone a run:
+</details>
+
+<details>
+<summary>🛠️ <b>Practical pod setup</b> (each of these has cost someone a run)</summary>
 
   💾 **Take 100 GB of container disk, not the 5 GB default.** Torch CUDA alone is
   about 3 GB, and FineWeb-Edu `sample-10BT` is 28 GB.
@@ -693,9 +774,16 @@ the multiple at this size.
   the token budget is not fixed before the run starts, so a pod can be stopped
   and the run extended later instead of being restarted.
 
+</details>
+
 ---
 
 ## 🛣️ Roadmap
+
+✅ **Every milestone is done and green.** The library trains, generates and benchmarks end to end.
+
+<details>
+<summary>🛣️ <b>Milestones M0 to M7</b></summary>
 
 | Milestone | Content | Status |
 |---|---|---|
@@ -708,12 +796,17 @@ the multiple at this size.
 | **M6** | Sampling, incremental decoding, speculative decoding | ✅ done, 297 tests green |
 | **M7** | Benchmarks (KV memory, throughput) and the ablation table | ✅ done, 322 tests green |
 
+</details>
+
 ---
 
 ## 🚫 What is not in this repo, and why
 
 Every item below matters in production. None is here, and each omission is a
 choice rather than an oversight.
+
+<details>
+<summary>🚫 <b>The omissions, and the reason for each</b></summary>
 
 | Absent | Why |
 |---|---|
@@ -725,8 +818,10 @@ choice rather than an oversight.
 | **Tokenizer training** | Upstream of the architecture. `mllm` takes token ids, and `bench/ablation.py` works on raw bytes precisely so no tokenizer choice contaminates a comparison. |
 | **Anything about closed models** | GPT, Claude and Gemini architectures are not published. What is written here comes from open-weights papers, and community inference is labelled as such. |
 
-Two more limits inside what *is* covered, stated because they would otherwise
-be discovered the hard way:
+</details>
+
+<details>
+<summary>🔹 <b>Two limits inside what is covered</b></summary>
 
   🔹 **Speculative decoding runs at batch size 1.** With a batch, each sequence
   accepts a different number of tokens per round and the caches go ragged.
@@ -734,6 +829,8 @@ be discovered the hard way:
   🔹 **A ring buffer cannot roll back past its window.** Speculative decoding
   therefore cannot run on a sliding window layer beyond the window, and
   `RingCache.rollback` raises instead of returning stale slots.
+
+</details>
 
 ---
 
@@ -750,6 +847,6 @@ This project is based on the papers listed in [papers/_INDEX.md](papers/_INDEX.m
 Related work of mine, in the order they were built:
 
 - 🤖 [Original LLM](https://github.com/Thibault-GAREL/Language_Models), a bigram model and a 2017-style Transformer written from scratch. This repo picks up exactly where that one stops.
-- 🔁 [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), the **harness**, the program wrapped around a trained model. A checkpoint from this library predicts tokens and nothing else. The harness is the loop that gives it tools, feeds the results back as new turns, and manages the context window and its cache, which is what turns a model into an agent. It uses `mllm` as its local provider.
+- 🔁 [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), the **harness** wrapped around a trained model (the loop, the tools, the context window), which uses `mllm` as its local provider.
 
 Code created by me 😎, Thibault GAREL - [Github](https://github.com/Thibault-GAREL)
