@@ -38,7 +38,7 @@ Every component ships with a **naive reference implementation** (readable, slow)
 
   🔬 **Naive path and fast path for every component**, with an equivalence test between them
 
-  📐 **Coherent profiles** shipped in `configs/`, from the vanilla 2017 block to a Gemma-style alternated model
+  📐 **Seven coherent profiles** shipped in `configs/`, from the vanilla 2017 block to a Gemma-style alternated model
 
   🚫 **No config activates everything at once**, because a model that stacks every brick is the counter-example this repo teaches against
 
@@ -409,7 +409,7 @@ The decoder block, with every switchable component and the config flag that cont
 </details>
 
 <details>
-<summary>🗂️ <b>The shipped profiles</b>, each one a coherent selection rather than a pile of features</summary>
+<summary>🗂️ <b>The seven shipped profiles</b>, each one a coherent selection rather than a pile of features</summary>
 
 | Profile | Attention | Positions | Norm | FFN |
 |---|---|---|---|---|
@@ -419,6 +419,7 @@ The decoder block, with every switchable component and the config flag that cont
 | `mla_long_ctx.yaml` | MLA, rank 512 | RoPE + YaRN ×4 | RMSNorm, pre | SwiGLU |
 | `gemma_style.yaml` | GQA + sliding window | RoPE | RMSNorm, sandwich | GeGLU |
 | **`best.yaml`** | **MQA + MTP depth 2** | **RoPE** | **RMSNorm, pre** | **SwiGLU** |
+| `bilingual_100m.yaml` (`best.yaml` with a 32k English and French vocabulary) | MQA + MTP depth 2 | RoPE | RMSNorm, pre | SwiGLU |
 
 </details>
 
@@ -431,6 +432,7 @@ The decoder block, with every switchable component and the config flag that cont
 
 ```bash
 ├── assets/                      # For the README
+│   ├── Titre-Modern_LLM.png
 │   ├── banner.svg
 │   └── architecture.svg
 │
@@ -439,38 +441,61 @@ The decoder block, with every switchable component and the config flag that cont
 │   ├── llama_style_150m.yaml    # RoPE + GQA + RMSNorm + SwiGLU
 │   ├── moe_1b_a200m.yaml        # fine-grained MoE + shared experts + aux-loss-free
 │   ├── mla_long_ctx.yaml        # MLA + YaRN + attention sinks
-│   └── gemma_style.yaml         # alternated local and global attention + QK-norm + softcap
+│   ├── gemma_style.yaml         # alternated local and global attention + QK-norm + softcap
+│   ├── best.yaml                # the best measured combination, MQA + MTP depth 2
+│   └── bilingual_100m.yaml      # best.yaml sized for an English and French run
 │
 ├── src/mllm/
 │   ├── config.py                # Pydantic schema, all the cross-field validation
-│   ├── model.py                 # Transformer, Block, forward and losses          ✅
+│   ├── model.py                 # Transformer, Block, forward and losses
 │   ├── layers/
-│   │   ├── norm.py              # LayerNorm, RMSNorm, QK-Norm, DyT, placements    ✅
-│   │   ├── pos.py               # RoPE, PI, NTK, YaRN, ALiBi, NoPE                ✅
-│   │   ├── attention.py         # MHA / MQA / GQA / MLA, SWA, sinks, softcap      ✅
-│   │   ├── ffn.py               # MLP, SwiGLU, GeGLU, ReGLU                       ✅
-│   │   ├── moe.py               # router, experts, shared experts, balancing      ✅
-│   │   └── heads.py             # LM head, tied embeddings, MTP heads             ✅
-│   ├── cache.py                 # dense KV cache, SWA ring buffer, MLA latent     ✅
-│   ├── init.py                  # standard init, scaled residual init, muP        ✅
-│   ├── optim.py                 # AdamW, param groups, WSD and cosine, z-loss     ✅
-│   ├── train.py                 # minimal training loop, grad accum, checkpoints  ✅
-│   ├── generate.py              # sampling, KV cache, speculative decoding        ✅
+│   │   ├── norm.py              # LayerNorm, RMSNorm, QK-Norm, DyT, placements
+│   │   ├── pos.py               # RoPE, PI, NTK, YaRN, ALiBi, NoPE
+│   │   ├── attention.py         # MHA / MQA / GQA / MLA, SWA, sinks, softcap
+│   │   ├── ffn.py               # MLP, SwiGLU, GeGLU, ReGLU
+│   │   ├── moe.py               # router, experts, shared experts, balancing
+│   │   └── heads.py             # LM head, tied embeddings, MTP heads
+│   ├── cache.py                 # dense KV cache, SWA ring buffer, MLA latent
+│   ├── init.py                  # standard init, scaled residual init, muP
+│   ├── optim.py                 # AdamW, param groups, WSD and cosine, z-loss
+│   ├── data.py                  # raw bytes for ablations, packed token ids for real training
+│   ├── train.py                 # minimal training loop, grad accum, checkpoints
+│   ├── generate.py              # sampling, KV cache, speculative decoding
+│   ├── run_logger.py            # readable run.log and MLflow tracking
 │   └── utils/
 │       ├── seed.py              # set_determinism
-│       └── numerics.py          # fp32 policy, precision fallback              ✅
+│       └── numerics.py          # fp32 policy, precision fallback
 │
-├── tests/                       # Equivalence tests, naive path against fast path
-│   ├── test_config.py
-│   ├── test_configs_load.py
-│   └── test_seed.py
+├── scripts/
+│   ├── prepare_data.py          # downloads, tokenizes and mixes the bilingual corpus
+│   └── generate.py              # runs a trained checkpoint (continue a prompt, show the next token)
+│
+├── bench/
+│   ├── ablation.py              # one change at a time, same token budget
+│   ├── kv_memory.py             # KV cache cost per token, per attention variant
+│   ├── throughput.py            # prefill and decode speed, peak memory
+│   └── coord_check.py           # muP coordinate check
+│
+├── tests/                       # One file per module, naive path against fast path
+│   ├── test_pos.py              # test_rope_is_relative, the headline test
+│   ├── test_attention.py        # GQA with full KV heads must equal MHA
+│   ├── test_generate.py         # speculative decoding keeps the target distribution
+│   └── ...                      # config, norm, cache, ffn, moe, heads, init, optim, model, train, data
+│
+├── docs/
+│   ├── ablations.md             # what each component was actually worth
+│   ├── taxonomy.md              # what changed, where, and what for
+│   ├── mup_coord_check.md       # the muP width invariance measurement
+│   ├── training_notes.md        # what worked and what broke on the bilingual run
+│   ├── *_results.json           # raw numbers behind the tables
+│   └── assets/                  # figures used by the docs and the README
 │
 ├── papers/                      # 29 reference PDFs, gitignored
 │   ├── _INDEX.md                # paper, component, config flag, milestone
 │   └── download.sh              # restores the PDFs after a clone
 │
-├── bench/                       # KV memory, throughput, ablations, coord check   ✅
-├── docs/                        # ablations.md, taxonomy.md, mup_coord_check.md   ✅
+├── outputs/logs/                # config and metrics of every run (the weights are gitignored)
+├── mlruns/                      # MLflow store, versioned so the curves survive a deleted pod
 │
 ├── pyproject.toml
 ├── LICENSE
