@@ -1,4 +1,4 @@
-# Benchmarks: what the bilingual model can do, against a frontier model
+# Benchmarks: what M.A.I can do, against a frontier model
 
 Nine tasks, English and French side by side, scored the same way for every
 base model and on the same items for every model. Raw results, item by item, are
@@ -15,10 +15,10 @@ The same first 100 items of each task, in the seeded order of
 | Model | HellaSwag EN | HellaSwag FR | ARC-E EN | ARC-C EN | ARC-C FR | Belebele EN | Belebele FR | LAMBADA EN | LAMBADA FR | Mean |
 |---|---|---|---|---|---|---|---|---|---|---|
 | *chance* | 25% | 25% | 25% | 25% | 25% | 25% | 25% | ~0% | ~0% | |
-| Modern LLM 111M, step 10k (1.31B tokens) | 27% | 32% | 35% | 17% | 22% | 20% | 28% | 13% | 11% | **23%** |
+| M.A.I v1, 111M (1.31B tokens) | 27% | 32% | 35% | 17% | 22% | 20% | 28% | 13% | 11% | **23%** |
 | Claude Opus 5.5, zero-shot | 98% | 95% | 100% | 99% | 100% | 97% | 96% | 97% | 83% | **96%** |
 
-**Reading it.** The 111M model is at chance on everything that needs
+**Reading it.** M.A.I v1 is at chance on everything that needs
 reasoning (ARC-Challenge, Belebele) and slightly above it where surface
 statistics help (ARC-Easy, HellaSwag FR, LAMBADA). That is the expected place
 for a 100M model at 1.3B tokens: GPT-2 small, 124M parameters trained on
@@ -90,13 +90,14 @@ end on a word no reader could predict from the translated text.
 
 | Run | Why | Cost |
 |---|---|---|
-| Modern LLM at step 10k, every item | tight error bars, about 1 point instead of 4 | a few minutes |
+| M.A.I v1, every item | tight error bars, about 1 point instead of 4 | a few minutes |
 | GPT-2 124M, SmolLM2-135M, every item | a 2019 and a 2024 model of the same size, English only | ~10 min |
 | CroissantLLMBase 1.3B, every item | **the same tokenizer and the same two languages**, 12x the parameters and 2300x the tokens | ~30 min |
-| Modern LLM after the resumed run | what the remaining tokens and the WSD decay buy | a few minutes |
+| M.A.I v2, after its run | what the remaining tokens and the WSD decay buy | a few minutes |
 
 ```bash
-python bench/eval_model.py --ckpt outputs/models/<run>/final_model.pt --name modern-llm-step46k
+python bench/eval_model.py --ckpt outputs/models/mai-v1/mai-v1.pt          # saved as mai-v1
+python bench/eval_model.py --ckpt outputs/models/mai-v2_run-01_date-.../best_model.pt   # mai-v2
 python bench/eval_model.py --hf gpt2
 python bench/eval_model.py --hf HuggingFaceTB/SmolLM2-135M
 python bench/eval_model.py --hf croissantllm/CroissantLLMBase

@@ -1,4 +1,4 @@
-"""A web page to try a trained checkpoint, built with Gradio.
+"""A web page to try M.A.I, or any checkpoint of this library, built with Gradio.
 
 Two tabs, the same two things ``scripts/generate.py`` does in a terminal:
 
@@ -6,12 +6,12 @@ Two tabs, the same two things ``scripts/generate.py`` does in a terminal:
   **Next token**, the probability of each candidate, which is the only thing
   a language model actually computes.
 
-    python scripts/app.py --ckpt outputs/models/<run>/final_model.pt
+    python scripts/app.py --ckpt outputs/models/mai-v1/mai-v1.pt
     python scripts/app.py --ckpt ... --share      # temporary public link
     python scripts/app.py --ckpt ... --port 7861
 
-Then open http://127.0.0.1:7860. The 111M model needs about 0.5 GB, so it runs
-on any GPU and on a CPU, where a 100 token answer takes a few seconds.
+Then open http://127.0.0.1:7860. M.A.I needs about 0.5 GB, so it runs on any
+GPU and on a CPU, where a 100 token answer takes a few seconds.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import gradio as gr
 import torch
 
 from mllm.generate import SamplingConfig, stream
-from mllm.inference import DEFAULT_TOKENIZER, LoadedModel, Tokenizer, load_model
+from mllm.inference import DEFAULT_TOKENIZER, LoadedModel, Tokenizer, display_name, load_model
 
 EXAMPLES = [
     ["La capitale de la France est"],
@@ -35,7 +35,7 @@ EXAMPLES = [
 ]
 
 INTRO = """\
-# 🧬 Modern LLM, the bilingual {params}M model
+# 🧬 {title}
 
 {describe}. A **base model**: it continues a text in English or French, it does
 not follow instructions or answer questions reliably. Write the beginning of a
@@ -91,12 +91,10 @@ def build_demo(loaded: LoadedModel, tokenizer: Tokenizer) -> gr.Blocks:
             shown[label if label not in shown else f"{label} (id {idx})"] = prob
         return shown
 
-    with gr.Blocks(title="Modern LLM") as demo:
-        gr.Markdown(
-            INTRO.format(
-                params=round(loaded.params_deployed / 1e6), describe=loaded.describe()
-            )
-        )
+    name = display_name(loaded.name)
+    title = f"{name}, Modern AI" if name and name.startswith("M.A.I") else (name or "Modern LLM")
+    with gr.Blocks(title=name or "Modern LLM") as demo:
+        gr.Markdown(INTRO.format(title=title, describe=loaded.describe()))
 
         with gr.Tab("✍️ Continue a text"):
             with gr.Row():

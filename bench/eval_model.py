@@ -15,8 +15,8 @@ Two accuracies per multiple choice task:
 LAMBADA has a single expected word, counted right when greedy decoding
 produces exactly its tokens.
 
-    # our checkpoint
-    python bench/eval_model.py --ckpt outputs/models/<run>/final_model.pt --name modern-llm-10k
+    # our checkpoint, named after the model it holds (mai-v1)
+    python bench/eval_model.py --ckpt outputs/models/mai-v1/mai-v1.pt
     # a reference model from the Hugging Face Hub, through transformers
     python bench/eval_model.py --hf HuggingFaceTB/SmolLM2-135M
     # a quick look, 200 items per task
@@ -68,6 +68,7 @@ class OurModel:
         self.encode = self.tok.encode
         self.describe = self.loaded.describe()
         self.params = self.loaded.params_deployed
+        self.name = self.loaded.name  # mai-v1, when the checkpoint carries it
 
     def logits(self, ids: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         # right padding only, and attention is causal, so the pads are never seen
@@ -214,7 +215,8 @@ def main() -> None:
     args = p.parse_args()
 
     model = OurModel(args.ckpt) if args.ckpt else HFModel(args.hf, args.dtype)
-    name = args.name or (args.hf or args.ckpt.stem).replace("/", "__")
+    default = getattr(model, "name", None) or args.hf or args.ckpt.stem
+    name = (args.name or default).replace("/", "__")
     print(f"model   : {model.describe}")
     print(f"device  : {model.device}, prefix ids {model.prefix}")
 

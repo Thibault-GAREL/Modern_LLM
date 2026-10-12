@@ -1,11 +1,11 @@
 """Run a trained checkpoint: continue a prompt, or inspect the next token.
 
-    # continue a prompt
-    python scripts/generate.py --ckpt outputs/models/<run>/final_model.pt \\
+    # continue a prompt with M.A.I v1
+    python scripts/generate.py --ckpt outputs/models/mai-v1/mai-v1.pt \\
         --prompt "La capitale de la France est" --tokens 60
 
     # show what the model thinks comes next, with probabilities
-    python scripts/generate.py --ckpt outputs/models/<run>/final_model.pt \\
+    python scripts/generate.py --ckpt outputs/models/mai-v1/mai-v1.pt \\
         --prompt "La capitale de la France est" --next
 
 Without ``--prompt`` it runs one English and one French prompt, which is the

@@ -6,7 +6,7 @@ Produces the layout ``mllm.data.TokenDataset`` expects::
     <out>/val.bin
     <out>/meta.json   vocab size, tokenizer, per-language counts, mixture
 
-Defaults target a French and English model:
+Defaults target M.A.I, a French and English model:
 
   **English** [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu)
   ``sample/10BT``, Common Crawl filtered by an educational-quality classifier.

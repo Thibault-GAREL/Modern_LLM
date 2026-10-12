@@ -185,3 +185,21 @@ def test_activation_checkpointing_runs(tmp_path):
     cfg = tiny_config(activation_checkpointing=True)
     model_dir = train(cfg, mlflow=False, project_root=tmp_path, model_name="t-ckptact")
     assert (model_dir / "ckpt.pt").exists()
+
+
+def test_the_config_name_names_the_run_and_the_checkpoint(tmp_path):
+    """A weights file must say which model it holds, M.A.I v2 for instance."""
+    cfg = tiny_config()
+    cfg.name = "mai-test"
+    model_dir = train(cfg, mlflow=False, project_root=tmp_path)
+    assert model_dir.name.startswith("mai-test_run-01")
+    ckpt = torch.load(model_dir / "ckpt.pt", map_location="cpu", weights_only=False)
+    assert ckpt["config"]["name"] == "mai-test"
+
+
+def test_display_name_writes_mai_versions_the_way_people_do():
+    from mllm.inference import display_name
+
+    assert display_name("mai-v2") == "M.A.I v2"
+    assert display_name("gpt2") == "gpt2"
+    assert display_name(None) is None

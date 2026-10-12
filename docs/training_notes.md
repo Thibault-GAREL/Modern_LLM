@@ -1,6 +1,8 @@
 # Training notes: what worked, what did not, what to fix next
 
-Kept as we go, on the actual bilingual run. Everything here is something that
+Kept as we go, on the actual runs of M.A.I (Modern AI), the bilingual model
+trained with this library. Its first version was called `bilingual-100m` while
+it trained, which is why the logs of M.A.I v1 carry that name. Everything here is something that
 was measured or hit in practice, not anticipated from a paper.
 
 Hardware: RunPod RTX 4090 24 GB, Ubuntu 22.04, torch 2.4.1+cu124, Python 3.11.
@@ -129,7 +131,7 @@ was measured partly on text the model trained on.
 
 **Fix**: `split_shards` reserves the last shard of each language for
 validation, and `meta.json` records which. A test checks that the two splits
-never fetch a common shard. The step 10k checkpoint has to be scored again on
+never fetch a common shard. M.A.I v1 has to be scored again on
 the clean set (`python -m mllm.train ... --eval-only ckpt.pt`) before its loss
 means anything.
 
@@ -142,7 +144,7 @@ windows run-01 had drawn from step 0: 262M tokens seen twice. Resuming at step
 second epoch over the first.
 
 **Fix**: the sampler's state is saved in `ckpt.pt` and restored on resume. An
-older checkpoint, like the step 10k one, gets a seed derived from its step, so
+older checkpoint, like M.A.I v1, gets a seed derived from its step, so
 it at least does not replay in order.
 
 ### Every evaluation drew new windows

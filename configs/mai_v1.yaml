@@ -1,4 +1,11 @@
-# A bilingual English and French model, 111M trained / 97M deployed.
+# M.A.I v1 (Modern AI), a bilingual English and French model,
+# 111M trained / 97M deployed.
+#
+# This is the profile the first run used, on a 46000 step plan. The pod was
+# stopped at step 9999 (1.31B tokens, learning rate still on the WSD plateau),
+# and that checkpoint IS M.A.I v1. To continue it, see configs/mai_v2.yaml.
+# The two runs of v1 are logged as bilingual-100m_run-01 and run-02, the name
+# the model had before it was called M.A.I.
 #
 # Architecture is configs/best.yaml, which won the ablation sweep in
 # docs/ablations.md on both axes at once (lowest held-out loss AND smallest
@@ -16,7 +23,9 @@
 # 500x the data. This is an architecture exercise, not an assistant.
 #
 #   python scripts/prepare_data.py --out data/bilingual --tokens 6e9 --en-ratio 0.7
-#   python -m mllm.train --config configs/bilingual_100m.yaml --data-dir data/bilingual
+#   python -m mllm.train --config configs/mai_v1.yaml --data-dir data/bilingual
+
+name: mai-v1               # the run name, and saved inside every checkpoint
 
 model:
   d_model: 768

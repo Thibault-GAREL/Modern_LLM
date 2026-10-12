@@ -21,6 +21,8 @@ from pathlib import Path
 
 from eval_tasks import REPO, TASKS
 
+from mllm.inference import display_name
+
 RESULTS = REPO / "outputs" / "results" / "evals"
 SUBSET = 100
 CHANCE = {task: ("~0%" if task.startswith("lambada") else "25%") for task in TASKS}
@@ -69,7 +71,7 @@ def main() -> None:
         known = [s for s in scores if s is not None]
         cells = [f"{s:.0%}" if s is not None else "-" for s in scores]
         mean = f"**{sum(known) / len(known):.0%}**" if known else "-"
-        rows.append(f"| {result['model']} | " + " | ".join(cells) + f" | {mean} |")
+        rows.append(f"| {display_name(result['model'])} | " + " | ".join(cells) + f" | {mean} |")
 
     table = "\n".join(rows)
     table += f"\n\n*{SUBSET} items per task, so one standard error is about 4 to 5 points.*"
@@ -87,7 +89,7 @@ def main() -> None:
                     continue
                 metric = "acc" if task.startswith("lambada") else "acc_norm"
                 cells.append(f"{entry[metric]['value']:.1%} (n={entry[metric]['n']})")
-            rows.append(f"| {result['model']} | " + " | ".join(cells) + " | |")
+            rows.append(f"| {display_name(result['model'])} | " + " | ".join(cells) + " | |")
         table += "\n\n" + "\n".join(rows)
 
     print(table)

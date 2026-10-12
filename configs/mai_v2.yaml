@@ -1,0 +1,85 @@
+# M.A.I v2 (Modern AI), M.A.I v1 trained further, same architecture.
+#
+# v1 stopped at step 9999 with its learning rate still on the WSD plateau,
+# never decayed. v2 resumes that checkpoint up to step 24000, about 3.15B
+# tokens or 32 per deployed parameter, and decays the learning rate over the
+# last 4800 steps, the phase where a WSD run drops most of its loss.
+#
+# Only `name`, `max_steps` and `decay_steps` differ from configs/mai_v1.yaml.
+# The WSD schedule reads them at resume, since a checkpoint stores the step
+# count and not the schedule, so v1's checkpoint continues on this plan.
+#
+#   python scripts/prepare_data.py --out data/bilingual --tokens 6e9
+#   python -m mllm.train --config configs/mai_v2.yaml --data-dir data/bilingual \
+#       --resume <v1 ckpt.pt> --cost-per-hour <costPerHr> --prior-hours 7.18 --prior-cost 5.32
+
+name: mai-v2               # the run name, and saved inside every checkpoint
+
+model:
+  d_model: 768
+  n_layers: 12
+  # overwritten at load time by the tokenizer that produced the data, kept here
+  # so the config is valid on its own
+  vocab_size: 32000
+  max_seq_len: 2048
+  bias: false
+  dropout: 0.0             # pretraining on fresh tokens never repeats a sample
+  tie_embeddings: true     # 24.6M parameters saved, 22% of the model
+
+  attention:
+    kind: mqa              # best measured, and the smallest KV cache
+    n_heads: 12
+    n_kv_heads: 1
+    qk_norm: false         # measured +0.030 on this exact combination
+
+  position:
+    kind: rope
+    rope_theta: 10000.0    # 2048 context, no need for 500000
+    rope_style: half
+
+  ffn:
+    kind: swiglu
+    multiple_of: 256
+
+  norm:
+    kind: rmsnorm
+    placement: pre
+
+  init:
+    scheme: fixed
+    std: 0.02
+    scaled_residual: true
+
+  mtp_depth: 2             # best single addition, and dropped at inference
+  mtp_lambda: 0.3
+
+train:
+  precision: bf16          # falls back to fp16 automatically on pre-Ampere GPUs
+  lr: 3.0e-4
+  betas: [0.9, 0.95]
+  weight_decay: 0.1
+  max_grad_norm: 1.0
+
+  schedule: wsd
+  warmup_steps: 2000       # long past at resume, kept so the profile also trains from zero
+  # 20% of the run, decay from step 19200 to 24000, down to 10% of the peak
+  decay_steps: 4800
+  # 24000 steps x 4 x 16 x 2048 = 3.15B tokens
+  max_steps: 24000
+
+  # 8 x 8 overflows 24 GB, because MTP depth 2 computes three cross entropies
+  # over a 32k vocabulary with fp32 logits. Same 131k tokens per step as v1.
+  micro_batch_size: 4
+  grad_accum_steps: 16     # effective batch of 64 sequences, 131k tokens per step
+  seq_len: 2048
+
+  z_loss_coef: 1.0e-4
+  activation_checkpointing: false   # a 100M model at 2048 fits without it on 24 GB
+
+  seed: 0
+  log_interval: 20
+  eval_interval: 500
+  # 50 x 4 x 2048 = 410k held-out tokens, the same windows at every eval
+  eval_batches: 50
+  # ~1.4 h of compute between checkpoints on an RTX 4090
+  ckpt_interval: 2000

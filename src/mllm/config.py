@@ -386,8 +386,15 @@ class ModelConfig(StrictModel):
 
 
 class Config(StrictModel):
-    """Root object loaded from one YAML profile in ``configs/``."""
+    """Root object loaded from one YAML profile in ``configs/``.
 
+    ``name`` identifies the trained model a profile produces, ``mai-v2`` for
+    instance. It becomes the default run name and is saved inside every
+    checkpoint, so a weights file always says which model and version it is.
+    Ablation profiles leave it empty.
+    """
+
+    name: str | None = None
     model: ModelConfig = Field(default_factory=ModelConfig)
     train: TrainConfig = Field(default_factory=TrainConfig)
 

@@ -10,7 +10,7 @@ clipping, the aux-loss-free balancing step, optional activation checkpointing,
 and JSONL logging of every loss term separately.
 
     python -m mllm.train --config configs/best.yaml
-    python -m mllm.train --config configs/bilingual_100m.yaml --data-dir data/bilingual
+    python -m mllm.train --config configs/mai_v2.yaml --data-dir data/bilingual   # M.A.I v2
     python -m mllm.train --config configs/best.yaml --resume outputs/.../ckpt.pt
     python -m mllm.train ... --cost-per-hour 0.74   # dollars spent, logged per step
 """
@@ -115,7 +115,7 @@ def train(
     data_path: Path | None = None,
     data_dir: Path | None = None,
     resume: Path | None = None,
-    model_name: str = "modern-llm",
+    model_name: str | None = None,
     mlflow: bool = True,
     cost_per_hour: float = 0.0,
     prior_hours: float = 0.0,
@@ -136,10 +136,13 @@ def train(
             time into a running cost, logged next to the loss.
         prior_hours, prior_cost_usd: time and money spent before checkpoints
             carried them. Ignored when the resumed checkpoint has its own.
+        model_name: the run name. Defaults to the config's ``name``
+            (``mai-v2``), or ``modern-llm`` for a profile without one.
         project_root: where ``outputs/`` and ``mlruns/`` go. Defaults to the
             repository, tests point it at a temporary folder.
     """
     train_cfg = cfg.train
+    model_name = model_name or cfg.name or "modern-llm"
     set_determinism(train_cfg.seed)
 
     device = pick_device()
@@ -474,7 +477,10 @@ def main() -> None:
     p.add_argument(
         "--resume", type=Path, default=None, help="checkpoint to continue from"
     )
-    p.add_argument("--name", type=str, default="modern-llm", help="run name")
+    p.add_argument(
+        "--name", type=str, default=None,
+        help="run name, defaults to the config's name (mai-v2) or modern-llm",
+    )
     p.add_argument("--no-mlflow", action="store_true")
     p.add_argument(
         "--cost-per-hour",

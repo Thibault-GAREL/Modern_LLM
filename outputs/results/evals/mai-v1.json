@@ -1,6 +1,6 @@
 {
-  "model": "modern-llm-step10k",
-  "describe": "final_model.pt, step 9,999, 1.31B tokens seen, 97M parameters deployed",
+  "model": "mai-v1",
+  "describe": "M.A.I v1, step 9,999, 1.31B tokens seen, 97M parameters deployed",
   "params": 96553728,
   "date": "2026-10-12 23:40",
   "device": "NVIDIA GeForce GTX 1660 Ti with Max-Q Design",

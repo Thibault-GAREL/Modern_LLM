@@ -4,7 +4,7 @@
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1%2Bcu121-red.svg)
 ![CUDA](https://img.shields.io/badge/CUDA-12.1-76B900.svg)
 ![Pydantic](https://img.shields.io/badge/Pydantic-2.13-e92063.svg)
-![pytest](https://img.shields.io/badge/tests-360%20passed-brightgreen.svg)
+![pytest](https://img.shields.io/badge/tests-363%20passed-brightgreen.svg)
 ![Gradio](https://img.shields.io/badge/Gradio-demo-orange.svg)
 
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -39,7 +39,7 @@ Every component ships with a **naive reference implementation** (readable, slow)
 
   🔬 **Naive path and fast path for every component**, with an equivalence test between them
 
-  📐 **Seven coherent profiles** shipped in `configs/`, from the vanilla 2017 block to a Gemma-style alternated model
+  📐 **Eight coherent profiles** shipped in `configs/`, from the vanilla 2017 block to a Gemma-style alternated model
 
   🚫 **No config activates everything at once**, because a model that stacks every brick is the counter-example this repo teaches against
 
@@ -363,12 +363,40 @@ the winner. It is slower, larger, harder to debug, and less accurate.
 
 ---
 
-## 🎯 Benchmarks: the 111M bilingual model against a frontier model
+## 🧠 M.A.I, the model trained with this library
+
+| Version | Steps | Tokens | Learning rate | Status |
+|---|---|---|---|---|
+| **M.A.I v1** | 10k | 1.31B | WSD plateau, never decayed | ✅ trained, August 2026 |
+| **M.A.I v2** | 24k | 3.15B | v1 resumed, decayed over the last 4.8k steps | 🔄 next run |
+
+🧠 **M.A.I** (Modern AI) is `configs/best.yaml` scaled to 111M parameters and trained on 70% English and 30% French. Each version keeps the architecture and adds training, so two versions compare like two points of one curve.
+
+<details>
+<summary>🪪 <b>Model card</b></summary>
+
+| | |
+|---|---|
+| **Architecture** | 12 layers, `d_model` 768, MQA (12 query heads, 1 KV head), RoPE, RMSNorm pre-norm, SwiGLU, tied embeddings |
+| **Parameters** | 111M trained, 97M deployed, since the two MTP heads are dropped at inference |
+| **Tokenizer** | CroissantLLM, 32k tokens, built for English and French |
+| **Data** | FineWeb-Edu `sample-10BT` for English, FineWeb2 `fra_Latn` for French |
+| **Context** | 2048 tokens |
+| **Training** | bf16 on one RTX 4090, AdamW, WSD schedule, 131k tokens per step |
+| **What it is** | a base model. It continues a text, it does not follow instructions |
+| **Weights** | `outputs/models/mai-v1/mai-v1.pt`, 444 MB, local for now. On the Hugging Face Hub with v2 |
+| **Naming** | `mai-v2` in configs, run names, checkpoints and result files, written M.A.I v2. The two runs of v1 predate the name and are logged as `bilingual-100m_run-01` and `run-02` |
+
+</details>
+
+---
+
+## 🎯 Benchmarks: M.A.I against a frontier model
 
 | Model | HellaSwag EN / FR | ARC-E | ARC-C EN / FR | Belebele EN / FR | LAMBADA EN / FR | Mean |
 |---|---|---|---|---|---|---|
 | *chance* | 25% / 25% | 25% | 25% / 25% | 25% / 25% | ~0% / ~0% | |
-| **Modern LLM 111M**, step 10k, 1.31B tokens | 27% / 32% | 35% | 17% / 22% | 20% / 28% | 13% / 11% | **23%** |
+| **M.A.I v1**, 111M, 1.31B tokens | 27% / 32% | 35% | 17% / 22% | 20% / 28% | 13% / 11% | **23%** |
 | **Claude Opus 5.5**, zero-shot | 98% / 95% | 100% | 99% / 100% | 97% / 96% | 97% / 83% | **96%** |
 
 📏 The same 100 questions per task for both, so one standard error is about 4 points. The model is still near chance everywhere except ARC-Easy and LAMBADA, which is what 1.3B tokens buys a 100M model.
@@ -447,7 +475,7 @@ The decoder block, with every switchable component and the config flag that cont
 </details>
 
 <details>
-<summary>🗂️ <b>The seven shipped profiles</b>, each one a coherent selection rather than a pile of features</summary>
+<summary>🗂️ <b>The eight shipped profiles</b>, each one a coherent selection rather than a pile of features</summary>
 
 | Profile | Attention | Positions | Norm | FFN |
 |---|---|---|---|---|
@@ -457,7 +485,8 @@ The decoder block, with every switchable component and the config flag that cont
 | `mla_long_ctx.yaml` | MLA, rank 512 | RoPE + YaRN ×4 | RMSNorm, pre | SwiGLU |
 | `gemma_style.yaml` | GQA + sliding window | RoPE | RMSNorm, sandwich | GeGLU |
 | **`best.yaml`** | **MQA + MTP depth 2** | **RoPE** | **RMSNorm, pre** | **SwiGLU** |
-| `bilingual_100m.yaml` (`best.yaml` with a 32k English and French vocabulary) | MQA + MTP depth 2 | RoPE | RMSNorm, pre | SwiGLU |
+| `mai_v1.yaml`, **M.A.I v1** (`best.yaml` with a 32k English and French vocabulary) | MQA + MTP depth 2 | RoPE | RMSNorm, pre | SwiGLU |
+| `mai_v2.yaml`, **M.A.I v2** (v1 trained on to step 24k) | MQA + MTP depth 2 | RoPE | RMSNorm, pre | SwiGLU |
 
 </details>
 
@@ -481,7 +510,8 @@ The decoder block, with every switchable component and the config flag that cont
 │   ├── mla_long_ctx.yaml        # MLA + YaRN + attention sinks
 │   ├── gemma_style.yaml         # alternated local and global attention + QK-norm + softcap
 │   ├── best.yaml                # the best measured combination, MQA + MTP depth 2
-│   └── bilingual_100m.yaml      # best.yaml sized for an English and French run
+│   ├── mai_v1.yaml              # M.A.I v1, best.yaml sized for English and French
+│   └── mai_v2.yaml              # M.A.I v2, v1 trained on to step 24k with the WSD decay
 │
 ├── src/mllm/
 │   ├── config.py                # Pydantic schema, all the cross-field validation
@@ -530,7 +560,7 @@ The decoder block, with every switchable component and the config flag that cont
 │   ├── ablations.md             # what each component was actually worth
 │   ├── taxonomy.md              # what changed, where, and what for
 │   ├── mup_coord_check.md       # the muP width invariance measurement
-│   ├── training_notes.md        # what worked and what broke on the bilingual run
+│   ├── training_notes.md        # what worked and what broke while training M.A.I
 │   ├── benchmarks.md            # every benchmark table, and the protocol behind it
 │   ├── *_results.json           # raw numbers behind the tables
 │   └── assets/                  # figures used by the docs and the README
@@ -570,7 +600,7 @@ pytest                                                            # checks the w
 python -m mllm.train --config configs/base.yaml --max-steps 200   # two minute smoke test, no data needed
 ```
 
-⚠️ Without the torch line, `pip install -e` pulls the **CPU** build of PyTorch. `best.yaml` and `bilingual_100m.yaml` are sized for a **24 GB card**, open "Train something" below to shrink them.
+⚠️ Without the torch line, `pip install -e` pulls the **CPU** build of PyTorch. `best.yaml` and the `mai_v*.yaml` profiles are sized for a **24 GB card**, open "Train something" below to shrink them.
 
 <details>
 <summary>🧪 <b>Run the tests</b></summary>
@@ -607,28 +637,28 @@ The interesting ones to read, because each pins down a claim rather than a shape
 
 ```bash
 pip install -e ".[demo]"     # gradio and the light tokenizers package
-python scripts/app.py --ckpt outputs/models/<run>/final_model.pt
+python scripts/app.py --ckpt outputs/models/mai-v1/mai-v1.pt
 # then open http://127.0.0.1:7860
-python scripts/app.py --ckpt outputs/models/<run>/final_model.pt --share   # temporary public link
+python scripts/app.py --ckpt outputs/models/mai-v1/mai-v1.pt --share   # temporary public link
 ```
 
-Two tabs. **Continue a text** streams the continuation token by token, with the temperature, top-p, repetition penalty and seed as sliders. **Next token** shows the probability of the 3 to 20 most likely next tokens. The 111M model needs about 0.5 GB, so it runs on any GPU and on a CPU.
+Two tabs. **Continue a text** streams the continuation token by token, with the temperature, top-p, repetition penalty and seed as sliders. **Next token** shows the probability of the 3 to 20 most likely next tokens. M.A.I needs about 0.5 GB, so it runs on any GPU and on a CPU.
 
-The weights are not in the repository (423 MB), so this needs a checkpoint you trained or received.
+The weights are not in the repository (444 MB), so this needs a checkpoint you trained or received. They will be on the Hugging Face Hub with v2.
 
 </details>
 
 <details>
 <summary>💬 <b>Try the trained model in a terminal</b></summary>
 
-The 111M bilingual model. Its weights are not in the
-repository (423 MB), so this needs a checkpoint you trained or received.
+M.A.I v1. Its weights are not in the
+repository (444 MB), so this needs a checkpoint you trained or received.
 
 **Ask what comes next.** A language model computes exactly one thing, a
 distribution over the next token. This prints it:
 
 ```bash
-python scripts/generate.py --ckpt outputs/models/<run>/final_model.pt     --prompt "La capitale de la France est" --next
+python scripts/generate.py --ckpt outputs/models/mai-v1/mai-v1.pt     --prompt "La capitale de la France est" --next
 ```
 
 ```
@@ -648,7 +678,7 @@ The prompt starts with `</s>`, the end of document token, because that is what p
 fed back in:
 
 ```bash
-python scripts/generate.py --ckpt outputs/models/<run>/final_model.pt     --prompt "La capitale de la France est" --tokens 40
+python scripts/generate.py --ckpt outputs/models/mai-v1/mai-v1.pt     --prompt "La capitale de la France est" --tokens 40
 ```
 
 > La capitale de la France est **Paris**. Elle a aussi ouvert des ponts entre le
@@ -679,7 +709,7 @@ otherwise the much lighter `tokenizers`, which downloads a 32 kB
 python -m mllm.train --config configs/base.yaml --max-steps 200
 ```
 
-⚠️ **`best.yaml` and `bilingual_100m.yaml` are sized for a 24 GB card** and
+⚠️ **`best.yaml` and the two `mai_v*.yaml` profiles are sized for a 24 GB card** and
 overflow a smaller one. Verified: on a 6 GB GTX 1660 Ti they raise
 `OutOfMemoryError` before the first step. Any config field can be overridden,
 which is how they are shrunk to fit:
@@ -695,12 +725,12 @@ python -m mllm.train --config configs/moe_1b_a200m.yaml     --set model.d_model=
 Reduce `micro_batch_size` before `seq_len`: raising `grad_accum_steps` by the
 same factor keeps the effective batch identical, so the run is unchanged.
 
-For a real bilingual run, prepare the corpus first (about an hour, 12 GB):
+To train M.A.I, prepare the corpus first (about an hour, 12 GB):
 
 ```bash
 python scripts/prepare_data.py --out data/bilingual --tokens 6e9 --en-ratio 0.7
-python -m mllm.train --config configs/bilingual_100m.yaml --data-dir data/bilingual
-python -m mllm.train --config configs/bilingual_100m.yaml     --data-dir data/bilingual --resume outputs/models/<run>/ckpt.pt
+python -m mllm.train --config configs/mai_v1.yaml --data-dir data/bilingual   # M.A.I v1 from scratch
+python -m mllm.train --config configs/mai_v2.yaml     --data-dir data/bilingual --resume outputs/models/<v1 run>/ckpt.pt   # v1 on to v2
 ```
 
 Every loss term is logged separately to `metrics.jsonl`, plus the routing
@@ -736,7 +766,7 @@ sweep is long enough that losing it to an interruption is a real cost.
 
 ```bash
 pip install -e ".[eval]"
-python bench/eval_model.py --ckpt outputs/models/<run>/final_model.pt --name my-model   # every item
+python bench/eval_model.py --ckpt outputs/models/mai-v1/mai-v1.pt   # every item, saved as mai-v1
 python bench/eval_model.py --hf HuggingFaceTB/SmolLM2-135M                              # any Hub model
 python bench/eval_model.py --ckpt ... --name quick --limit 100                          # the shared head
 python bench/eval_llm.py export --limit 100     # questions for a chat model, keys kept apart
@@ -744,7 +774,7 @@ python bench/eval_llm.py score --answers <file>.jsonl --name <model>
 python bench/eval_report.py --out docs/benchmark_table.md
 ```
 
-The full sets take a few minutes for the 111M model on a recent GPU, and about half an hour for a 1B reference model.
+The full sets take a few minutes for M.A.I on a recent GPU, and about half an hour for a 1B reference model.
 
 </details>
 
@@ -832,56 +862,72 @@ choice contaminates an architecture comparison.
 
 ## 💰 Training this on RunPod without spending much
 
-| The bilingual 111M model | Tokens | Time on an RTX 4090 | Cost at $0.74/h |
+| M.A.I | Tokens | Time on an RTX 4090 | Cost |
 |---|---|---|---|
-| **Done so far**, step 10k of 46k | 1.31B | 7.2 h | **$5.32** |
-| Cooldown only, 4k more steps | +0.52B | +2.9 h | +$2.1 |
-| To step 24k, about 30 tokens per parameter | +1.84B | +10.0 h | +$7.4 |
-| **The full planned run**, step 46k | +4.72B | +25.8 h | **+$19.1** |
+| **v1, done**, step 10k | 1.31B | 7.2 h | **$5.32**, billed $0.74/h |
+| **v2, next**, step 24k | +1.84B | +10.1 h | **+$3.42** at $0.34/h Community |
+| the full plan of v1, step 46k | +4.72B | +25.8 h | +$8.80 at $0.34/h |
 
-💸 **Measured, not estimated**: 2.58 s per step of 131k tokens, so 50.8k tokens/s and **$4.05 per billion tokens**. Add about 1.5 h (~$1.10) of setup and data preparation to every pod.
+💸 **Measured, not estimated**: 2.58 s per step of 131k tokens, so 50.8k tokens/s, **$1.86 per billion tokens** on a Community Cloud 4090 at October 2026 prices. Add about 2 h of setup, data preparation and benchmarks to every pod.
+
+<details>
+<summary>🖥️ <b>Which pod for M.A.I, with October 2026 prices</b></summary>
+
+| GPU, Community Cloud | $/h | tokens/s | M.A.I v2 run (1.84B tokens) | with the 2 h overhead |
+|---|---|---|---|---|
+| **RTX 4090 24 GB** | **0.34** | **50.8k, measured** | **10.1 h, $3.42** | **12 h, ~$4.10** |
+| RTX 5090 32 GB | 0.69 | ~75k, estimated | 6.8 h, $4.70 | 9 h, ~$6.10 |
+| A100 SXM 80 GB | 1.39 | ~100k, estimated | 5.1 h, $7.10 | 7 h, ~$9.90 |
+| H100 SXM 80 GB | 2.69 | ~200k, estimated | 2.6 h, $6.90 | 4.6 h, ~$12.30 |
+
+The estimates scale the measured 4090 by memory bandwidth and bf16 throughput,
+and only a smoke test on the real pod confirms them. **The 4090 wins on cost**,
+the H100 on wall clock time. A bigger card buys speed, not a better model, and
+the 2 h of data preparation and setup cost the same hours on every card, which
+is what makes an expensive GPU expensive here.
+
+</details>
 
 <details>
 <summary>📐 <b>Where these numbers come from, and why a 4090</b></summary>
 
 The step time is the median over the 10,000 steps of the first run, read from
-`outputs/logs/bilingual-100m_run-0*/metrics.jsonl`. Counting `6N` plus the
-attention scores per token, that is about **27% model FLOPs utilization** of the
-4090's 165 TFLOPS, realistic for a small model that spends much of its time
-waiting on memory. `torch.compile`, left off so far, is the obvious next gain.
+`outputs/logs/bilingual-100m_run-0*/metrics.jsonl` (M.A.I v1, logged before it had
+its name). Counting `6N` plus the attention scores per token, that is about
+**27% model FLOPs utilization** of the 4090's 165 TFLOPS, realistic for a small
+model that spends much of its time waiting on memory. `torch.compile`, left off
+so far, is the obvious next gain.
 
-**The pod billed $0.74/h, not the $0.34 of the price list.** Read `costPerHr`
-from `runpodctl pod list` and pass it to `--cost-per-hour`. The training loop
-then logs `compute/cost_usd`, `compute/hours`, `throughput/tok_s` and
+**The first pod billed $0.74/h, not the price list.** Read `costPerHr` from
+`runpodctl pod list` and pass it to `--cost-per-hour`. The training loop then
+logs `compute/cost_usd`, `compute/hours`, `throughput/tok_s` and
 `throughput/mfu` at every step, summed across resumed runs since the totals
 travel inside the checkpoint.
 
-**A 4090 is the right GPU here, not an A100.** The 111M model at sequence length
-2048 fits in 24 GB with a micro batch of 4, so the card is never the constraint.
-Paying 2x for 80 GB of VRAM you will not use buys only the extra bandwidth.
+**A 4090 is the right GPU here, not an A100.** M.A.I, 111M parameters at
+sequence length 2048, fits in 24 GB with a micro batch of 4, so the card is
+never the constraint.
 
 </details>
 
 <details>
-<summary>🔁 <b>Continue the bilingual run from step 10k</b></summary>
+<summary>🔁 <b>Train M.A.I v2 from v1</b></summary>
 
 ```bash
 # 1. the corpus again, validation shards now held out of train (~1 h, 12 GB)
 python scripts/prepare_data.py --out /root/data/bilingual --tokens 6e9 --scratch /root/shards
 
-# 2. the step 10k checkpoint on that clean validation set, the baseline to beat
-python -m mllm.train --config configs/bilingual_100m.yaml --data-dir /root/data/bilingual \
-    --eval-only outputs/models/bilingual-100m_run-02_date-2026-08-12/ckpt.pt
+# 2. M.A.I v1 on that clean validation set, the baseline to beat
+python -m mllm.train --config configs/mai_v2.yaml --data-dir /root/data/bilingual     --eval-only outputs/models/bilingual-100m_run-02_date-2026-08-12/ckpt.pt
 
-# 3. resume, with the time and money already spent carried over
-python -m mllm.train --config configs/bilingual_100m.yaml --data-dir /root/data/bilingual \
-    --resume outputs/models/bilingual-100m_run-02_date-2026-08-12/ckpt.pt \
-    --name bilingual-100m --cost-per-hour 0.74 --prior-hours 7.18 --prior-cost 5.32
+# 3. resume v1 on the v2 plan, with the time and money already spent carried over
+python -m mllm.train --config configs/mai_v2.yaml --data-dir /root/data/bilingual     --resume outputs/models/bilingual-100m_run-02_date-2026-08-12/ckpt.pt     --cost-per-hour 0.34 --prior-hours 7.18 --prior-cost 5.32
 ```
 
-For a shorter run, `--set train.max_steps=24000 --set train.decay_steps=4800`
-moves the decay earlier. The WSD schedule reads the new budget at resume,
-since the checkpoint stores only the step count, not the schedule.
+The run is named `mai-v2` from its config, so its files land in
+`outputs/logs/mai-v2_run-01/` and `outputs/models/mai-v2_run-01_date-.../`. The
+WSD schedule reads the new budget at resume, since the checkpoint stores the
+step count and not the schedule.
 
 </details>
 
@@ -911,7 +957,7 @@ since the checkpoint stores only the step count, not the schedule.
 
 ## 🛣️ Roadmap
 
-✅ **M0 to M7 are done and green.** 🔄 **M8, the second bilingual run and its benchmarks, is next.**
+✅ **M0 to M7 are done and green.** 🔄 **M8, training M.A.I v2 and benchmarking it, is next.**
 
 <details>
 <summary>🛣️ <b>Milestones M0 to M8</b></summary>
@@ -926,7 +972,7 @@ since the checkpoint stores only the step count, not the schedule.
 | **M5** | Model assembly, optimizer groups, WSD schedule, training loop | ✅ done, 269 tests green |
 | **M6** | Sampling, incremental decoding, speculative decoding | ✅ done, 297 tests green |
 | **M7** | Benchmarks (KV memory, throughput) and the ablation table | ✅ done, 322 tests green |
-| **M8** | Gradio demo, nine task benchmark, resumed bilingual run with cost tracking | 🔄 code done, 360 tests green, run pending |
+| **M8** | Gradio demo, nine task benchmark, M.A.I v2 run with cost tracking | 🔄 code done, 363 tests green, run pending |
 
 </details>
 

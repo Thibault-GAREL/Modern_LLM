@@ -31,7 +31,7 @@ flash = [
 bench = [
     "matplotlib>=3.8",
 ]
-# the bilingual run: corpus download, tokenization, tracking
+# training M.A.I: corpus download, tokenization, tracking
 train = [
     "mlflow>=2.14",
     "transformers>=4.40",

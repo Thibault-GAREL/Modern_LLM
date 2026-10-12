@@ -7,8 +7,8 @@ benchmarks in ``bench/eval_model.py``, so a prompt is encoded one way only.
 tokenizes every document without special tokens and appends the end of
 document id, so the token the model always saw just before a document starts
 is ``</s>``. The tokenizer's default adds ``<s>`` instead, an id that never
-appeared once in the six billion training tokens. Measured on the step 9999
-checkpoint, over four English and French paragraphs::
+appeared once in the six billion training tokens. Measured on M.A.I v1, over
+four English and French paragraphs::
 
     first token        mean loss
     <s>  (default)       2.775
@@ -30,6 +30,16 @@ from mllm.utils.numerics import pick_device
 REPO = Path(__file__).resolve().parents[2]
 DEFAULT_TOKENIZER = "croissantllm/CroissantLLMBase"
 EOS_CANDIDATES = ("</s>", "<|endoftext|>", "<eos>")
+
+
+def display_name(name: str | None) -> str | None:
+    """``mai-v2`` as people write it: ``M.A.I v2``, for Modern AI.
+
+    Any other name is returned unchanged, and ``None`` stays ``None``.
+    """
+    if name and name.lower().startswith("mai-"):
+        return f"M.A.I {name[4:]}"
+    return name
 
 
 class Tokenizer:
@@ -129,9 +139,14 @@ class LoadedModel:
     def max_len(self) -> int:
         return self.cfg.model.max_seq_len
 
+    @property
+    def name(self) -> str | None:
+        """The model's id, ``mai-v1`` for instance, if its config carries one."""
+        return self.cfg.name
+
     def describe(self) -> str:
         return (
-            f"{self.path.name}, step {self.step:,}, "
+            f"{display_name(self.name) or self.path.name}, step {self.step:,}, "
             f"{self.tokens_seen / 1e9:.2f}B tokens seen, "
             f"{self.params_deployed / 1e6:.0f}M parameters deployed"
         )
