@@ -16,6 +16,7 @@ loss curve or a benchmark will tell you.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 import torch
@@ -138,7 +139,7 @@ def sample_from_logits(
 
 
 @torch.no_grad()
-def generate(
+def stream(
     model: nn.Module,
     idx: Tensor,
     max_new_tokens: int,
@@ -147,12 +148,13 @@ def generate(
     cache: ModelCache | None = None,
     generator: torch.Generator | None = None,
     eos_id: int | None = None,
-) -> Tensor:
-    """Prefill then decode incrementally.
+) -> Iterator[Tensor]:
+    """Prefill then decode incrementally, yielding each token as it is drawn.
 
     The prompt goes through in one pass, filling the cache, after which every
     step processes a single token. Passing ``cache=None`` allocates one sized
-    for the full output.
+    for the full output. Yields ``(batch, 1)`` tensors, which is what lets a
+    web page show the text while it is being written.
     """
     cfg = cfg or SamplingConfig()
     model.eval()
@@ -165,10 +167,27 @@ def generate(
         step = process_logits(logits[:, -1], cfg, seen=out)
         token = sample_from_logits(step, cfg, generator)
         out = torch.cat([out, token], dim=1)
+        yield token
         if eos_id is not None and (token == eos_id).all():
-            break
+            return
         logits, _, _ = model(token, cache=cache)
-    return out
+
+
+def generate(
+    model: nn.Module,
+    idx: Tensor,
+    max_new_tokens: int,
+    cfg: SamplingConfig | None = None,
+    *,
+    cache: ModelCache | None = None,
+    generator: torch.Generator | None = None,
+    eos_id: int | None = None,
+) -> Tensor:
+    """``stream`` run to the end, returning the prompt followed by the new tokens."""
+    tokens = list(
+        stream(model, idx, max_new_tokens, cfg, cache=cache, generator=generator, eos_id=eos_id)
+    )
+    return torch.cat([idx, *tokens], dim=1)
 
 
 # ---------------------------------------------------------------------------

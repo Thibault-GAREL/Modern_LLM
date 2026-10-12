@@ -109,15 +109,15 @@ def metrics_of(model_dir) -> list[dict]:
     return [json.loads(line) for line in log_file.read_text(encoding="utf-8").splitlines()]
 
 
-def test_training_reduces_the_loss():
-    model_dir = train(tiny_config(), mlflow=False, model_name="t-loss")
+def test_training_reduces_the_loss(tmp_path):
+    model_dir = train(tiny_config(), mlflow=False, project_root=tmp_path, model_name="t-loss")
     records = metrics_of(model_dir)
     assert len(records) >= 3
     assert records[-1]["loss/ce"] < records[0]["loss/ce"]
 
 
-def test_metrics_contain_every_expected_field():
-    model_dir = train(tiny_config(), mlflow=False, model_name="t-fields")
+def test_metrics_contain_every_expected_field(tmp_path):
+    model_dir = train(tiny_config(), mlflow=False, project_root=tmp_path, model_name="t-fields")
     first = metrics_of(model_dir)[0]
     assert {"step", "lr", "grad_norm", "step_time_s", "tokens", "loss/ce"} <= set(first)
 
@@ -150,9 +150,9 @@ def test_gradient_accumulation_matches_a_larger_batch():
     build_optimizer(model_a, cfg.model, cfg.train)  # must not raise
 
 
-def test_checkpoint_round_trips():
+def test_checkpoint_round_trips(tmp_path):
     cfg = tiny_config()
-    model_dir = train(cfg, mlflow=False, model_name="t-ckpt")
+    model_dir = train(cfg, mlflow=False, project_root=tmp_path, model_name="t-ckpt")
     # map_location so a GPU checkpoint stays loadable on a CPU-only machine
     ckpt = torch.load(model_dir / "ckpt.pt", map_location="cpu", weights_only=False)
     assert ckpt["step"] == cfg.train.max_steps - 1
@@ -165,8 +165,8 @@ def test_checkpoint_round_trips():
     model.load_state_dict(ckpt["model"])
 
 
-def test_config_is_saved_next_to_the_log():
-    model_dir = train(tiny_config(), mlflow=False, model_name="t-cfg")
+def test_config_is_saved_next_to_the_log(tmp_path):
+    model_dir = train(tiny_config(), mlflow=False, project_root=tmp_path, model_name="t-cfg")
     run_name = model_dir.name.split("_date-")[0]
     saved = json.loads(
         (model_dir.parents[1] / "logs" / run_name / "config.json").read_text()
@@ -174,14 +174,14 @@ def test_config_is_saved_next_to_the_log():
     assert saved["model"]["d_model"] == 32
 
 
-def test_wsd_schedule_runs_end_to_end():
+def test_wsd_schedule_runs_end_to_end(tmp_path):
     cfg = tiny_config(schedule="wsd", decay_steps=4)
-    model_dir = train(cfg, mlflow=False, model_name="t-wsd")
+    model_dir = train(cfg, mlflow=False, project_root=tmp_path, model_name="t-wsd")
     lrs = [r["lr"] for r in metrics_of(model_dir) if "lr" in r]
     assert lrs[-1] < max(lrs), "the decay phase must lower the learning rate"
 
 
-def test_activation_checkpointing_runs():
+def test_activation_checkpointing_runs(tmp_path):
     cfg = tiny_config(activation_checkpointing=True)
-    model_dir = train(cfg, mlflow=False, model_name="t-ckptact")
+    model_dir = train(cfg, mlflow=False, project_root=tmp_path, model_name="t-ckptact")
     assert (model_dir / "ckpt.pt").exists()

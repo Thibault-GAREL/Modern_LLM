@@ -86,6 +86,9 @@ train:
   seed: 0
   log_interval: 20
   eval_interval: 500
+  # 50 x 4 x 2048 = 410k held-out tokens, the same windows at every eval, so two
+  # points of the curve differ by the model and not by the sample drawn
+  eval_batches: 50
   # ~40 minutes of compute between checkpoints. /workspace is not persistent on
   # RunPod, so this is what a stopped pod costs at worst.
   ckpt_interval: 2000

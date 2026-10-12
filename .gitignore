@@ -46,5 +46,8 @@ htmlcov/
 
 # Logs
 *.log
+# tokenizer, benchmark files and their answer keys, all re-downloadable
 .cache/
+# the prepared corpus, 12 GB, rebuilt by scripts/prepare_data.py
+data/
 results.tar.gz

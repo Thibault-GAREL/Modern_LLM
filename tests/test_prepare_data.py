@@ -121,6 +121,46 @@ def test_running_out_of_shards_warns_instead_of_hanging(tmp_path, fake_hub, caps
 
 
 # ---------------------------------------------------------------------------
+# Train and validation never share a shard
+# ---------------------------------------------------------------------------
+
+
+def test_validation_shards_are_held_out_of_train():
+    """Both splits once read from the first shard, so val was a prefix of train."""
+    shards = {lang: [f"{lang}/shard_{i:03d}.parquet" for i in range(5)] for lang in ("en", "fr")}
+    plan = prepare_data.split_shards(shards)
+    for lang in shards:
+        assert not set(plan["train"][lang]) & set(plan["val"][lang])
+        assert plan["val"][lang] == [f"{lang}/shard_004.parquet"]
+        assert len(plan["train"][lang]) == 4
+
+
+def test_written_splits_read_disjoint_shards(tmp_path, fake_hub):
+    """The property itself, measured on what was actually fetched."""
+    shards = {lang: [f"{lang}/shard_{i:03d}.parquet" for i in range(20)] for lang in ("en", "fr")}
+    plan = prepare_data.split_shards(shards)
+    scratch = tmp_path / "scratch"
+
+    prepare_data.write_split(
+        None, {"en": 700, "fr": 300}, tmp_path, "val", scratch, workers=2, shards=plan["val"]
+    )
+    val_fetched = {p.name for p in fake_hub}
+    fake_hub.clear()
+    prepare_data.write_split(
+        None, {"en": 7_000, "fr": 3_000}, tmp_path, "train", scratch, workers=2,
+        shards=plan["train"],
+    )
+    train_fetched = {p.name for p in fake_hub}
+    assert val_fetched and train_fetched
+    assert not val_fetched & train_fetched, f"shared shards: {val_fetched & train_fetched}"
+
+
+def test_too_few_shards_to_hold_out_is_refused():
+    with pytest.raises(SystemExit, match="too few"):
+        prepare_data.split_shards({"fr": ["fr/only.parquet"]})
+
+
+# ---------------------------------------------------------------------------
 # Disk hygiene, which a 20 GB volume depends on
 # ---------------------------------------------------------------------------
 

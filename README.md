@@ -4,7 +4,8 @@
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1%2Bcu121-red.svg)
 ![CUDA](https://img.shields.io/badge/CUDA-12.1-76B900.svg)
 ![Pydantic](https://img.shields.io/badge/Pydantic-2.13-e92063.svg)
-![pytest](https://img.shields.io/badge/tests-322%20passed-brightgreen.svg)
+![pytest](https://img.shields.io/badge/tests-360%20passed-brightgreen.svg)
+![Gradio](https://img.shields.io/badge/Gradio-demo-orange.svg)
 
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Contributions](https://img.shields.io/badge/contributions-welcome-orange.svg)
@@ -362,6 +363,43 @@ the winner. It is slower, larger, harder to debug, and less accurate.
 
 ---
 
+## 🎯 Benchmarks: the 111M bilingual model against a frontier model
+
+| Model | HellaSwag EN / FR | ARC-E | ARC-C EN / FR | Belebele EN / FR | LAMBADA EN / FR | Mean |
+|---|---|---|---|---|---|---|
+| *chance* | 25% / 25% | 25% | 25% / 25% | 25% / 25% | ~0% / ~0% | |
+| **Modern LLM 111M**, step 10k, 1.31B tokens | 27% / 32% | 35% | 17% / 22% | 20% / 28% | 13% / 11% | **23%** |
+| **Claude Opus 5.5**, zero-shot | 98% / 95% | 100% | 99% / 100% | 97% / 96% | 97% / 83% | **96%** |
+
+📏 The same 100 questions per task for both, so one standard error is about 4 points. The model is still near chance everywhere except ARC-Easy and LAMBADA, which is what 1.3B tokens buys a 100M model.
+
+<details>
+<summary>🔬 <b>How each model is scored, and why nobody could cheat</b></summary>
+
+**The base model never picks a letter.** Each answer is appended to the context and the log-probability of its tokens is summed, the method of lm-evaluation-harness. Multiple choice uses `acc_norm` (divided by the answer's length in bytes), LAMBADA counts a hit when greedy decoding produces the exact last word. Validated on GPT-2 first: 29.3% on HellaSwag and 34.0% on LAMBADA over 1000 items, against the published 31.1% and 32.6%.
+
+**The frontier model reads lettered questions and answers in text.** `bench/eval_llm.py export` writes the 900 questions to one file and the keys to another, `.cache/evals/keys/keys.jsonl`, which the answerer never opened. No dataset, no web, no code and no other model were used while answering. `score` hashes the answers file (sha256 `41d4fcb8b48876ee...`) before reading the keys, and the answers are committed in `outputs/results/evals/llm/`.
+
+**The ceiling is an upper bound.** These benchmarks have been public since 2018 to 2023, so a model trained on the web has likely seen some of them. LAMBADA FR is machine translated, which explains its 83%: some passages end on a word no reader could predict.
+
+</details>
+
+<details>
+<summary>🧾 <b>The nine tasks</b></summary>
+
+| Task | What it measures | Source |
+|---|---|---|
+| HellaSwag EN / FR | the plausible next sentence | [Rowan/hellaswag](https://huggingface.co/datasets/Rowan/hellaswag), [FrenchBench](https://huggingface.co/datasets/manu/french_bench_hellaswag) |
+| ARC-Easy, ARC-Challenge EN / FR | grade school science | [allenai/ai2_arc](https://huggingface.co/datasets/allenai/ai2_arc), [FrenchBench](https://huggingface.co/datasets/manu/french_bench_arc_challenge) |
+| Belebele EN / FR | reading comprehension, the same 900 passages in both languages | [facebook/belebele](https://huggingface.co/datasets/facebook/belebele) |
+| LAMBADA EN / FR | the last word of a story, which needs the whole passage | [EleutherAI/lambada_openai](https://huggingface.co/datasets/EleutherAI/lambada_openai) |
+
+Belebele is scored on the text of each answer rather than on its letter, otherwise every small model sits at exactly 25%. Full tables, per task and with every item, in [docs/benchmarks.md](docs/benchmarks.md).
+
+</details>
+
+---
+
 ## ⚙️ How it works
 
   🧾 **Everything starts from a config**, nested Pydantic models where a YAML typo raises instead of being silently ignored
@@ -460,7 +498,8 @@ The decoder block, with every switchable component and the config flag that cont
 │   ├── optim.py                 # AdamW, param groups, WSD and cosine, z-loss
 │   ├── data.py                  # raw bytes for ablations, packed token ids for real training
 │   ├── train.py                 # minimal training loop, grad accum, checkpoints
-│   ├── generate.py              # sampling, KV cache, speculative decoding
+│   ├── generate.py              # sampling, streaming, KV cache, speculative decoding
+│   ├── inference.py             # load a checkpoint and its tokenizer the way training saw them
 │   ├── run_logger.py            # readable run.log and MLflow tracking
 │   └── utils/
 │       ├── seed.py              # set_determinism
@@ -468,13 +507,18 @@ The decoder block, with every switchable component and the config flag that cont
 │
 ├── scripts/
 │   ├── prepare_data.py          # downloads, tokenizes and mixes the bilingual corpus
-│   └── generate.py              # runs a trained checkpoint (continue a prompt, show the next token)
+│   ├── generate.py              # runs a trained checkpoint (continue a prompt, show the next token)
+│   └── app.py                   # the same two things in a Gradio web page
 │
 ├── bench/
 │   ├── ablation.py              # one change at a time, same token budget
 │   ├── kv_memory.py             # KV cache cost per token, per attention variant
 │   ├── throughput.py            # prefill and decode speed, peak memory
-│   └── coord_check.py           # muP coordinate check
+│   ├── coord_check.py           # muP coordinate check
+│   ├── eval_tasks.py            # the nine benchmark tasks, English and French
+│   ├── eval_model.py            # scores a base model by log-likelihood
+│   ├── eval_llm.py              # exports questions for a chat model, scores its answers
+│   └── eval_report.py           # one table from every result
 │
 ├── tests/                       # One file per module, naive path against fast path
 │   ├── test_pos.py              # test_rope_is_relative, the headline test
@@ -487,6 +531,7 @@ The decoder block, with every switchable component and the config flag that cont
 │   ├── taxonomy.md              # what changed, where, and what for
 │   ├── mup_coord_check.md       # the muP width invariance measurement
 │   ├── training_notes.md        # what worked and what broke on the bilingual run
+│   ├── benchmarks.md            # every benchmark table, and the protocol behind it
 │   ├── *_results.json           # raw numbers behind the tables
 │   └── assets/                  # figures used by the docs and the README
 │
@@ -495,6 +540,7 @@ The decoder block, with every switchable component and the config flag that cont
 │   └── download.sh              # restores the PDFs after a clone
 │
 ├── outputs/logs/                # config and metrics of every run (the weights are gitignored)
+├── outputs/results/evals/       # benchmark results, one JSON per model, item by item
 ├── mlruns/                      # MLflow store, versioned so the curves survive a deleted pod
 │
 ├── pyproject.toml
@@ -557,7 +603,23 @@ The interesting ones to read, because each pins down a claim rather than a shape
 </details>
 
 <details>
-<summary>💬 <b>Try the trained model</b></summary>
+<summary>🖥️ <b>Try the trained model in your browser</b> (Gradio)</summary>
+
+```bash
+pip install -e ".[demo]"     # gradio and the light tokenizers package
+python scripts/app.py --ckpt outputs/models/<run>/final_model.pt
+# then open http://127.0.0.1:7860
+python scripts/app.py --ckpt outputs/models/<run>/final_model.pt --share   # temporary public link
+```
+
+Two tabs. **Continue a text** streams the continuation token by token, with the temperature, top-p, repetition penalty and seed as sliders. **Next token** shows the probability of the 3 to 20 most likely next tokens. The 111M model needs about 0.5 GB, so it runs on any GPU and on a CPU.
+
+The weights are not in the repository (423 MB), so this needs a checkpoint you trained or received.
+
+</details>
+
+<details>
+<summary>💬 <b>Try the trained model in a terminal</b></summary>
 
 The 111M bilingual model. Its weights are not in the
 repository (423 MB), so this needs a checkpoint you trained or received.
@@ -575,10 +637,12 @@ prompt : 'La capitale de la France est'
 
   token                     probability
   ------------------------ ------------
-  la                            17.27%  #######
-  le                            12.43%  #####
-  une                            2.56%  #
+  la                            19.88%  ########
+  le                            12.78%  #####
+  une                            2.54%  #
 ```
+
+The prompt starts with `</s>`, the end of document token, because that is what preceded every document during training. The tokenizer's default `<s>` never appeared once in the corpus, and measured on four paragraphs it costs 0.06 nats of loss.
 
 **Continue a prompt**, which is that same step repeated with the chosen token
 fed back in:
@@ -668,6 +732,23 @@ sweep is long enough that losing it to an interruption is a real cost.
 </details>
 
 <details>
+<summary>🎯 <b>Benchmark a checkpoint</b></summary>
+
+```bash
+pip install -e ".[eval]"
+python bench/eval_model.py --ckpt outputs/models/<run>/final_model.pt --name my-model   # every item
+python bench/eval_model.py --hf HuggingFaceTB/SmolLM2-135M                              # any Hub model
+python bench/eval_model.py --ckpt ... --name quick --limit 100                          # the shared head
+python bench/eval_llm.py export --limit 100     # questions for a chat model, keys kept apart
+python bench/eval_llm.py score --answers <file>.jsonl --name <model>
+python bench/eval_report.py --out docs/benchmark_table.md
+```
+
+The full sets take a few minutes for the 111M model on a recent GPU, and about half an hour for a 1B reference model.
+
+</details>
+
+<details>
 <summary>🐍 <b>Read a config from Python</b></summary>
 
 ```python
@@ -751,31 +832,56 @@ choice contaminates an architecture comparison.
 
 ## 💰 Training this on RunPod without spending much
 
-| Goal | Model | Tokens | GPU | Time | Cost |
-|---|---|---|---|---|---|
-| Validate the pipeline end to end | 50M | 1B | RTX 4090 24 GB | ~2 h | **~$1** |
-| **The run worth doing** | **150M** | **3B** (Chinchilla) | **RTX 4090 24 GB** | **~18 h** | **~$6** |
-| A genuinely usable small model | 150M | 15B (100x) | RTX 4090 24 GB | ~4 days | ~$30 |
-| Going bigger | 500M | 10B | A100 80 GB | ~2 to 3 days | ~$80 |
+| The bilingual 111M model | Tokens | Time on an RTX 4090 | Cost at $0.74/h |
+|---|---|---|---|
+| **Done so far**, step 10k of 46k | 1.31B | 7.2 h | **$5.32** |
+| Cooldown only, 4k more steps | +0.52B | +2.9 h | +$2.1 |
+| To step 24k, about 30 tokens per parameter | +1.84B | +10.0 h | +$7.4 |
+| **The full planned run**, step 46k | +4.72B | +25.8 h | **+$19.1** |
 
-The 150M run at Chinchilla costs **about the price of a coffee** on an RTX 4090. Verify current prices in the RunPod UI, they move.
+💸 **Measured, not estimated**: 2.58 s per step of 131k tokens, so 50.8k tokens/s and **$4.05 per billion tokens**. Add about 1.5 h (~$1.10) of setup and data preparation to every pod.
 
 <details>
-<summary>📐 <b>How the estimates were made, and why a 4090</b></summary>
+<summary>📐 <b>Where these numbers come from, and why a 4090</b></summary>
 
-Estimates below use `6 * params * tokens` FLOPs and a conservative 25% model
-FLOPs utilization, which is realistic for a small model where the GPU spends a
-lot of its time waiting on memory. **Measure a short run before committing**:
-the numbers move by a factor of two with sequence length and batch size.
+The step time is the median over the 10,000 steps of the first run, read from
+`outputs/logs/bilingual-100m_run-0*/metrics.jsonl`. Counting `6N` plus the
+attention scores per token, that is about **27% model FLOPs utilization** of the
+4090's 165 TFLOPS, realistic for a small model that spends much of its time
+waiting on memory. `torch.compile`, left off so far, is the obvious next gain.
 
-At roughly **$0.34/hour for an RTX 4090 on Community Cloud** and $1.39/hour for
-an A100 80 GB, the 150M run at Chinchilla costs about the price of a coffee.
-Verify current prices in the RunPod UI, they move.
+**The pod billed $0.74/h, not the $0.34 of the price list.** Read `costPerHr`
+from `runpodctl pod list` and pass it to `--cost-per-hour`. The training loop
+then logs `compute/cost_usd`, `compute/hours`, `throughput/tok_s` and
+`throughput/mfu` at every step, summed across resumed runs since the totals
+travel inside the checkpoint.
 
-**A 4090 is the right GPU here, not an A100.** A 150M model at sequence length
-1024 fits in a few GB, so the 24 GB card is never the constraint. Paying 4x for
-80 GB of VRAM you will not use buys only the extra bandwidth, which is not worth
-the multiple at this size.
+**A 4090 is the right GPU here, not an A100.** The 111M model at sequence length
+2048 fits in 24 GB with a micro batch of 4, so the card is never the constraint.
+Paying 2x for 80 GB of VRAM you will not use buys only the extra bandwidth.
+
+</details>
+
+<details>
+<summary>🔁 <b>Continue the bilingual run from step 10k</b></summary>
+
+```bash
+# 1. the corpus again, validation shards now held out of train (~1 h, 12 GB)
+python scripts/prepare_data.py --out /root/data/bilingual --tokens 6e9 --scratch /root/shards
+
+# 2. the step 10k checkpoint on that clean validation set, the baseline to beat
+python -m mllm.train --config configs/bilingual_100m.yaml --data-dir /root/data/bilingual \
+    --eval-only outputs/models/bilingual-100m_run-02_date-2026-08-12/ckpt.pt
+
+# 3. resume, with the time and money already spent carried over
+python -m mllm.train --config configs/bilingual_100m.yaml --data-dir /root/data/bilingual \
+    --resume outputs/models/bilingual-100m_run-02_date-2026-08-12/ckpt.pt \
+    --name bilingual-100m --cost-per-hour 0.74 --prior-hours 7.18 --prior-cost 5.32
+```
+
+For a shorter run, `--set train.max_steps=24000 --set train.decay_steps=4800`
+moves the decay earlier. The WSD schedule reads the new budget at resume,
+since the checkpoint stores only the step count, not the schedule.
 
 </details>
 
@@ -805,10 +911,10 @@ the multiple at this size.
 
 ## 🛣️ Roadmap
 
-✅ **Every milestone is done and green.** The library trains, generates and benchmarks end to end.
+✅ **M0 to M7 are done and green.** 🔄 **M8, the second bilingual run and its benchmarks, is next.**
 
 <details>
-<summary>🛣️ <b>Milestones M0 to M7</b></summary>
+<summary>🛣️ <b>Milestones M0 to M8</b></summary>
 
 | Milestone | Content | Status |
 |---|---|---|
@@ -820,6 +926,7 @@ the multiple at this size.
 | **M5** | Model assembly, optimizer groups, WSD schedule, training loop | ✅ done, 269 tests green |
 | **M6** | Sampling, incremental decoding, speculative decoding | ✅ done, 297 tests green |
 | **M7** | Benchmarks (KV memory, throughput) and the ablation table | ✅ done, 322 tests green |
+| **M8** | Gradio demo, nine task benchmark, resumed bilingual run with cost tracking | 🔄 code done, 360 tests green, run pending |
 
 </details>
 

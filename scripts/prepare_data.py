@@ -125,6 +125,23 @@ def tokenize_shard(
     return tokens[:budget] if budget is not None else tokens
 
 
+def split_shards(shards: dict[str, list[str]], val_shards: int = 1) -> dict[str, dict]:
+    """Reserve the last shards of each language for validation, the rest for train.
+
+    Both splits used to read their language's shard list from the start, so the
+    validation tokens were the first tokens of the training file: the held-out
+    loss was measured on text the model trained on. Disjoint shards make the
+    leak impossible by construction rather than by luck.
+    """
+    plan: dict[str, dict] = {"train": {}, "val": {}}
+    for lang, files in shards.items():
+        if len(files) <= val_shards:
+            raise SystemExit(f"{lang}: {len(files)} shards, too few to hold out {val_shards}")
+        plan["train"][lang] = files[:-val_shards]
+        plan["val"][lang] = files[-val_shards:]
+    return plan
+
+
 def write_split(
     tokenizer,
     budgets: dict[str, int],
@@ -133,6 +150,7 @@ def write_split(
     scratch: Path,
     *,
     workers: int = 4,
+    shards: dict[str, list[str]] | None = None,
 ) -> dict[str, int]:
     """Fill one ``.bin`` by alternating languages, shard by shard.
 
@@ -143,9 +161,17 @@ def write_split(
 
     Shards are deleted as soon as they are tokenized, so peak disk stays at a
     couple of shards rather than the whole corpus.
+
+    Args:
+        shards: the shard list of each language for this split, as given by
+            ``split_shards``. Defaults to every shard, which is only safe when
+            a single split is written.
     """
     remaining = {k: v for k, v in budgets.items() if v > 0}
-    queues = {lang: list_shards(lang) for lang in remaining}
+    queues = {
+        lang: list(shards[lang]) if shards is not None else list_shards(lang)
+        for lang in remaining
+    }
     counts = {lang: 0 for lang in remaining}
     path = out_dir / f"{split}.bin"
 
@@ -235,9 +261,16 @@ def main() -> None:
     print(f"scratch   : {scratch}")
     print(f"output    : {out.resolve()}\n")
 
+    shard_plan = split_shards({lang: list_shards(lang) for lang in SOURCES})
+    for lang, files in shard_plan["val"].items():
+        print(f"val {lang}    : held out {', '.join(Path(f).name for f in files)}")
+
     t0 = time.perf_counter()
     counts = {
-        split: write_split(tokenizer, budgets, out, split, scratch, workers=args.workers)
+        split: write_split(
+            tokenizer, budgets, out, split, scratch,
+            workers=args.workers, shards=shard_plan[split],
+        )
         for split, budgets in plan.items()
     }
     shutil.rmtree(scratch, ignore_errors=True)
@@ -248,6 +281,7 @@ def main() -> None:
         "tokenizer": args.tokenizer,
         "mixture": {"en": args.en_ratio, "fr": round(1 - args.en_ratio, 4)},
         "sources": SOURCES,
+        "val_shards": shard_plan["val"],
         "counts": counts,
         "seed": args.seed,
         "prepared_s": round(time.perf_counter() - t0, 1),

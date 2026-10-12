@@ -298,6 +298,7 @@ class TrainConfig(StrictModel):
     seed: int = 42
     log_interval: int = Field(10, gt=0)
     eval_interval: int = Field(500, gt=0)  # held-out loss, needs a val split
+    eval_batches: int = Field(20, gt=0)  # same windows at every eval, see train.evaluate
     ckpt_interval: int = Field(500, gt=0)
     out_dir: str = "outputs"
 

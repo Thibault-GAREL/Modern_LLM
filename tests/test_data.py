@@ -167,7 +167,7 @@ def tiny_config(**train_kw) -> Config:
 def test_the_corpus_sets_the_vocabulary_not_the_config(corpus):
     cfg = tiny_config()
     assert cfg.model.vocab_size == 8
-    train(cfg, data_dir=corpus, mlflow=False, model_name="test-vocab")
+    train(cfg, data_dir=corpus, mlflow=False, project_root=corpus, model_name="test-vocab")
     assert cfg.model.vocab_size == VOCAB, "a mismatched vocab would crash the embedding"
 
 
@@ -184,7 +184,8 @@ def metrics_of(model_dir) -> list[dict]:
 
 def test_training_on_tokens_reduces_the_loss(corpus):
     model_dir = train(
-        tiny_config(max_steps=30), data_dir=corpus, mlflow=False, model_name="test-tok"
+        tiny_config(max_steps=30), data_dir=corpus, mlflow=False, project_root=corpus,
+        model_name="test-tok",
     )
     records = metrics_of(model_dir)
     assert len(records) >= 2
@@ -198,6 +199,7 @@ def test_validation_loss_is_logged_and_saves_the_best_model(corpus):
         tiny_config(max_steps=8, eval_interval=4),
         data_dir=corpus,
         mlflow=False,
+        project_root=corpus,
         model_name="test-val",
     )
     assert (model_dir / "best_model.pt").exists(), "an eval must save the best model"
@@ -209,6 +211,7 @@ def test_no_validation_without_a_prepared_corpus(tmp_path):
     model_dir = train(
         tiny_config(max_steps=6, eval_interval=2),
         mlflow=False,
+        project_root=tmp_path,
         model_name="test-noval",
     )
     assert not (model_dir / "best_model.pt").exists()
@@ -260,6 +263,7 @@ def test_resuming_continues_instead_of_restarting(corpus):
         tiny_config(max_steps=6, ckpt_interval=3),
         data_dir=corpus,
         mlflow=False,
+        project_root=corpus,
         model_name="test-resume-a",
     )
     ckpt = first / "ckpt.pt"
@@ -269,8 +273,108 @@ def test_resuming_continues_instead_of_restarting(corpus):
         tiny_config(max_steps=12, ckpt_interval=3),
         data_dir=corpus,
         mlflow=False,
+        project_root=corpus,
         model_name="test-resume-b",
         resume=ckpt,
     )
     restored = torch.load(second / "ckpt.pt", map_location="cpu", weights_only=False)
     assert restored["step"] == 11, "the resumed run must end at the new max_steps"
+
+
+def test_a_resumed_sampler_continues_instead_of_replaying(corpus):
+    """Resuming must draw the batches an uninterrupted run would have drawn.
+
+    The sampler used to be rebuilt from its seed, so a run resumed at step N
+    trained again on the windows of steps 0, 1, 2 and so on.
+    """
+    from mllm.model import Transformer
+    from mllm.optim import build_optimizer, build_scheduler
+
+    cfg = tiny_config()
+    cfg.model.vocab_size = VOCAB
+    cpu = torch.device("cpu")
+    model = Transformer(cfg.model)
+    opt = build_optimizer(model, cfg.model, cfg.train)
+    sched = build_scheduler(opt, cfg.train)
+    scaler = torch.amp.GradScaler("cpu", enabled=False)
+
+    data = TokenDataset(corpus, "train", 32, cpu, seed=3)
+    first_batch = data.batch(4)[0]
+    data.batch(4)
+    path = corpus / "ckpt.pt"
+    save_checkpoint(model, opt, sched, scaler, 1, cfg, path, data=data)
+    expected_next = data.batch(4)[0]
+
+    resumed = TokenDataset(corpus, "train", 32, cpu, seed=3)
+    load_checkpoint(path, model, opt, sched, scaler, "cpu", dataset=resumed)
+    got = resumed.batch(4)[0]
+    torch.testing.assert_close(got, expected_next)
+    assert not torch.equal(got, first_batch), "a resumed run replayed its first batch"
+
+
+def test_an_old_checkpoint_without_sampler_state_does_not_replay(corpus):
+    from mllm.model import Transformer
+    from mllm.optim import build_optimizer, build_scheduler
+
+    cfg = tiny_config()
+    cfg.model.vocab_size = VOCAB
+    cpu = torch.device("cpu")
+    model = Transformer(cfg.model)
+    opt = build_optimizer(model, cfg.model, cfg.train)
+    sched = build_scheduler(opt, cfg.train)
+    scaler = torch.amp.GradScaler("cpu", enabled=False)
+
+    path = corpus / "old.pt"
+    save_checkpoint(model, opt, sched, scaler, 9, cfg, path)  # no data= given
+    first_batch = TokenDataset(corpus, "train", 32, cpu, seed=3).batch(4)[0]
+    resumed = TokenDataset(corpus, "train", 32, cpu, seed=3)
+    load_checkpoint(path, model, opt, sched, scaler, "cpu", dataset=resumed)
+    assert not torch.equal(resumed.batch(4)[0], first_batch)
+
+
+def test_rewind_repeats_the_same_windows(corpus):
+    """Each evaluation must score the model on the same held-out windows."""
+    val = TokenDataset(corpus, "val", 32, torch.device("cpu"), seed=1234)
+    first = val.batch(4)[0]
+    val.batch(4)
+    val.rewind()
+    torch.testing.assert_close(val.batch(4)[0], first)
+
+
+def test_a_checkpoint_scores_the_same_twice_on_the_validation_set(corpus):
+    """--eval-only: the baseline a resumed run is compared to, so it must be stable."""
+    from mllm.train import evaluate_checkpoint
+
+    cfg = tiny_config(max_steps=4, ckpt_interval=2)
+    model_dir = train(
+        cfg, data_dir=corpus, mlflow=False, project_root=corpus, model_name="test-evo"
+    )
+    first = evaluate_checkpoint(cfg, model_dir / "ckpt.pt", corpus)
+    second = evaluate_checkpoint(cfg, model_dir / "ckpt.pt", corpus)
+    assert first == pytest.approx(second)
+    assert 0 < first < 20
+
+
+def test_compute_time_and_cost_add_up_across_a_resume(corpus):
+    """The money spent on a model must survive a stopped pod."""
+    first = train(
+        tiny_config(max_steps=4, ckpt_interval=2),
+        data_dir=corpus, mlflow=False, project_root=corpus,
+        model_name="test-cost-a", cost_per_hour=3600.0,  # one dollar per second
+    )
+    before = torch.load(first / "ckpt.pt", map_location="cpu", weights_only=False)["compute"]
+    assert before["seconds"] > 0
+    assert before["cost_usd"] == pytest.approx(before["seconds"], rel=1e-6)
+
+    second = train(
+        tiny_config(max_steps=8, ckpt_interval=2),
+        data_dir=corpus, mlflow=False, project_root=corpus,
+        model_name="test-cost-b", cost_per_hour=0.0, resume=first / "ckpt.pt",
+    )
+    after = torch.load(second / "ckpt.pt", map_location="cpu", weights_only=False)["compute"]
+    assert after["seconds"] > before["seconds"]
+    # the second run was free, so the bill must not have moved
+    assert after["cost_usd"] == pytest.approx(before["cost_usd"])
+
+    metrics = metrics_of(second)
+    assert {"compute/hours", "compute/cost_usd", "throughput/tok_s"} <= set(metrics[0])

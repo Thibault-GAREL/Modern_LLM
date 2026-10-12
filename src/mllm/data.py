@@ -109,10 +109,18 @@ class TokenDataset:
         # it alone would make every dataset draw the same windows. Deriving the
         # seed from the global RNG instead means set_determinism still controls
         # the run, while two datasets built in sequence differ.
+        self.seed = seed if seed is not None else int(torch.randint(0, 2**31 - 1, (1,)).item())
         self.generator = torch.Generator()
-        self.generator.manual_seed(
-            seed if seed is not None else int(torch.randint(0, 2**31 - 1, (1,)).item())
-        )
+        self.generator.manual_seed(self.seed)
+
+    def rewind(self) -> None:
+        """Restart the sampler from its seed, so the next batches repeat exactly.
+
+        This is what an evaluation wants: the same windows at every call, so
+        two points of a validation curve differ by the model and not by the
+        sample that happened to be drawn.
+        """
+        self.generator.manual_seed(self.seed)
 
     @property
     def n_tokens(self) -> int:

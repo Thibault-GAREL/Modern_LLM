@@ -31,6 +31,25 @@ flash = [
 bench = [
     "matplotlib>=3.8",
 ]
+# the bilingual run: corpus download, tokenization, tracking
+train = [
+    "mlflow>=2.14",
+    "transformers>=4.40",
+    "huggingface_hub>=0.23",
+    "pyarrow>=15",
+]
+# scripts/app.py, the web page to try a checkpoint
+demo = [
+    "gradio>=5",
+    "tokenizers>=0.19",
+    "requests>=2.31",
+]
+# bench/eval_model.py and bench/eval_llm.py
+eval = [
+    "transformers>=4.40",
+    "huggingface_hub>=0.23",
+    "pyarrow>=15",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mllm"]

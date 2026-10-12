@@ -115,6 +115,76 @@ written for. Loss at that point was already **4.21 validation**, down from
 
 ---
 
+## Found while preparing the second run
+
+A review of the code before paying for more pod hours. Three of these would
+have quietly spoiled the resumed run, and none of them raised an error.
+
+### The validation set was inside the training set
+
+`write_split` listed each language's shards from the start for **both**
+splits, so `val.bin` held the first 5M tokens of shard 0 and `train.bin` began
+with the very same tokens. Every `loss/val` of the first run, 3.41 included,
+was measured partly on text the model trained on.
+
+**Fix**: `split_shards` reserves the last shard of each language for
+validation, and `meta.json` records which. A test checks that the two splits
+never fetch a common shard. The step 10k checkpoint has to be scored again on
+the clean set (`python -m mllm.train ... --eval-only ckpt.pt`) before its loss
+means anything.
+
+### A resumed run replayed the batches of step 0
+
+`TokenDataset` seeds its sampler from the global seed, and the checkpoint did
+not store the sampler. So run-02, resumed at step 2000, drew exactly the
+windows run-01 had drawn from step 0: 262M tokens seen twice. Resuming at step
+10000 would have replayed 1.31B tokens, turning the rest of the run into a
+second epoch over the first.
+
+**Fix**: the sampler's state is saved in `ckpt.pt` and restored on resume. An
+older checkpoint, like the step 10k one, gets a seed derived from its step, so
+it at least does not replay in order.
+
+### Every evaluation drew new windows
+
+The validation sampler kept advancing, so each point of the `loss/val` curve
+was measured on 80 different windows. That sampling noise, a few hundredths of
+a nat, is the same size as the progress between two evaluations.
+
+**Fix**: `evaluate` rewinds the sampler first, and `eval_batches` (50 for the
+bilingual config) sets how many windows it reads.
+
+### The prompt started with a token the model had never seen
+
+`scripts/generate.py` encoded prompts with the tokenizer's defaults, which
+prepend `<s>`. The corpus was tokenized without special tokens and with `</s>`
+between documents, so `<s>` never appeared once in 6B tokens.
+
+| first token | mean loss, four EN and FR paragraphs |
+|---|---|
+| `<s>` (tokenizer default) | 2.775 |
+| `</s>` (as in training) | **2.716** |
+| none | 2.917 |
+
+**Fix**: `mllm.inference` encodes every prompt `</s>` first, and the terminal
+script, the Gradio page and the benchmarks all go through it.
+
+### Smaller things
+
+- **The test suite wrote into the real `outputs/` and `mlruns/`.** About 150
+  `t-*` and `test-*` run folders were committed. `train` now takes a
+  `project_root`, and the tests point it at a temporary folder.
+- **`pyproject.toml` did not declare `mlflow`, `gradio` or `pyarrow`.** Added
+  as the `train`, `demo` and `eval` extras.
+- **HellaSwag's `ind` and Belebele's article names are not unique ids.** Two
+  Belebele articles are both called "Introduction". `load_task` now refuses
+  duplicate ids, which is what caught the second case.
+- **On Windows, importing `pyarrow` after `torch` crashes** with an access
+  violation (torch 2.5.1, transformers 5). `bench/eval_model.py` imports it
+  first.
+
+---
+
 ## To optimize before the next run
 
 | Priority | Item | Why |
@@ -122,7 +192,8 @@ written for. Loss at that point was already **4.21 validation**, down from
 | High | **Set `HF_TOKEN` on the pod** | HF warns about unauthenticated requests and rate-limits them. Free speedup on the download phase |
 | High | **Progress granularity in prep** | the bar only advances when a whole shard finishes, so it looks frozen for minutes. Update per batch |
 | Medium | **Put the venv on the ephemeral disk** | it eats 2.7 GB of the 20 GB persistent volume for something regenerable in two minutes |
-| Medium | **Measure MFU during training** | the throughput estimate is a guess until the first real run reports tokens/s |
+| Done | **Measure MFU during training** | logged at every step as `throughput/mfu`, about 27% on the first run |
+| Done | **Log the cost** | `--cost-per-hour` logs `compute/cost_usd`, summed across resumes |
 | Medium | **`torch.compile`** | left off for the first run to keep failures interpretable. Worth a measured comparison afterwards |
 | Low | **Parallel tokenization across processes** | 3.2M tok/s is already far past the download rate, so this only matters if HF gets faster |
 | Low | **Larger network volume** | 20 GB leaves 2.6 GB spare once data and checkpoints are in place, which forbids keeping several checkpoints |
