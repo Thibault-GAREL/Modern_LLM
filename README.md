@@ -365,10 +365,10 @@ the winner. It is slower, larger, harder to debug, and less accurate.
 
 ## 🧠 M.A.I, the model trained with this library
 
-| Version | Steps | Tokens | Learning rate | Status |
-|---|---|---|---|---|
-| **M.A.I v1** | 10k | 1.31B | WSD plateau, never decayed | ✅ trained, August 2026 |
-| **M.A.I v2** | 24k | 3.15B | v1 resumed, decayed over the last 4.8k steps | 🔄 next run |
+| Version | Steps | Tokens | Learning rate | `loss/val` | Benchmark mean | Status |
+|---|---|---|---|---|---|---|
+| **M.A.I v1** | 10k | 1.31B | WSD plateau, never decayed | 3.332 | 24.3% | ✅ August 2026 |
+| **M.A.I v2** | 24k | 3.15B | v1 resumed, decayed over the last 4.8k steps | **3.079** | **25.9%** | ✅ October 2026 |
 
 🧠 **M.A.I** (Modern AI) is `configs/best.yaml` scaled to 111M parameters and trained on 70% English and 30% French. Each version keeps the architecture and adds training, so two versions compare like two points of one curve.
 
@@ -384,27 +384,31 @@ the winner. It is slower, larger, harder to debug, and less accurate.
 | **Context** | 2048 tokens |
 | **Training** | bf16 on one RTX 4090, AdamW, WSD schedule, 131k tokens per step |
 | **What it is** | a base model. It continues a text, it does not follow instructions |
-| **Weights** | `outputs/models/mai-v1/mai-v1.pt`, 444 MB, local for now. On the Hugging Face Hub with v2 |
+| **Weights** | `outputs/models/mai-v2/mai-v2.pt` and `mai-v1.pt`, 444 MB each, local for now and ready for the Hugging Face Hub (`release/PUBLISH.md`) |
 | **Naming** | `mai-v2` in configs, run names, checkpoints and result files, written M.A.I v2. The two runs of v1 predate the name and are logged as `bilingual-100m_run-01` and `run-02` |
 
 </details>
 
 ---
 
-## 🎯 Benchmarks: M.A.I against a frontier model
+## 🎯 Benchmarks: M.A.I against models of its size, and a frontier one
 
 | Model | HellaSwag EN / FR | ARC-E | ARC-C EN / FR | Belebele EN / FR | LAMBADA EN / FR | Mean |
 |---|---|---|---|---|---|---|
-| *chance* | 25% / 25% | 25% | 25% / 25% | 25% / 25% | ~0% / ~0% | |
-| **M.A.I v1**, 111M, 1.31B tokens | 27% / 32% | 35% | 17% / 22% | 20% / 28% | 13% / 11% | **23%** |
-| **Claude Opus 5.5**, zero-shot | 98% / 95% | 100% | 99% / 100% | 97% / 96% | 97% / 83% | **96%** |
+| *chance* | 25 / 25 | 25 | 25 / 25 | 25 / 25 | ~0 / ~0 | |
+| GPT-2, 124M, English only | 31.5 / 28.8 | 40.5 | 22.4 / 22.2 | 28.7 / 28.8 | 33.7 / 8.4 | 27.2% |
+| SmolLM2, 135M, English, 2T tokens | 44.3 / 29.3 | 58.3 | 29.0 / 22.7 | 33.2 / 31.1 | 43.6 / 16.1 | 34.2% |
+| CroissantLLM, 1.3B, EN and FR, 3T tokens | 54.1 / 51.3 | 52.2 | 27.7 / 29.9 | 35.8 / 37.2 | 38.3 / 33.1 | 39.9% |
+| **M.A.I v1**, 97M, 1.31B tokens | 28.2 / 28.2 | 38.3 | 21.4 / 22.4 | 28.3 / 27.3 | 11.7 / 13.2 | 24.3% |
+| **M.A.I v2**, 97M, 3.15B tokens | 29.0 / 29.3 | 39.3 | 22.4 / 24.0 | 28.3 / 28.6 | 16.7 / 15.9 | **25.9%** |
+| Claude Opus 5.5, zero-shot, 100 items per task | 98 / 95 | 100 | 99 / 100 | 97 / 96 | 97 / 83 | 96% |
 
-📏 The same 100 questions per task for both, so one standard error is about 4 points. The model is still near chance everywhere except ARC-Easy and LAMBADA, which is what 1.3B tokens buys a 100M model.
+📏 Accuracy in %, base models on every item (10,042 for HellaSwag EN). M.A.I v2 gains on 8 tasks of 9 and already beats GPT-2 in French (24.5% against 22.0% on average), while 600 times fewer tokens than SmolLM2 still show in English.
 
 <details>
 <summary>🔬 <b>How each model is scored, and why nobody could cheat</b></summary>
 
-**The base model never picks a letter.** Each answer is appended to the context and the log-probability of its tokens is summed, the method of lm-evaluation-harness. Multiple choice uses `acc_norm` (divided by the answer's length in bytes), LAMBADA counts a hit when greedy decoding produces the exact last word. Validated on GPT-2 first: 29.3% on HellaSwag and 34.0% on LAMBADA over 1000 items, against the published 31.1% and 32.6%.
+**The base model never picks a letter.** Each answer is appended to the context and the log-probability of its tokens is summed, the method of lm-evaluation-harness. Multiple choice uses `acc_norm` (divided by the answer's length in bytes), LAMBADA counts a hit when greedy decoding produces the exact last word. Validated on GPT-2 first: 31.5% on HellaSwag, 43.9% on ARC-Easy (`acc`) and 33.7% on LAMBADA over every item, against the published 31.1%, 43.8% and 32.6%.
 
 **The frontier model reads lettered questions and answers in text.** `bench/eval_llm.py export` writes the 900 questions to one file and the keys to another, `.cache/evals/keys/keys.jsonl`, which the answerer never opened. No dataset, no web, no code and no other model were used while answering. `score` hashes the answers file (sha256 `41d4fcb8b48876ee...`) before reading the keys, and the answers are committed in `outputs/results/evals/llm/`.
 
@@ -637,9 +641,9 @@ The interesting ones to read, because each pins down a claim rather than a shape
 
 ```bash
 pip install -e ".[demo]"     # gradio and the light tokenizers package
-python scripts/app.py --ckpt outputs/models/mai-v1/mai-v1.pt
+python scripts/app.py --ckpt outputs/models/mai-v2/mai-v2.pt
 # then open http://127.0.0.1:7860
-python scripts/app.py --ckpt outputs/models/mai-v1/mai-v1.pt --share   # temporary public link
+python scripts/app.py --ckpt outputs/models/mai-v2/mai-v2.pt --share   # temporary public link
 ```
 
 Two tabs. **Continue a text** streams the continuation token by token, with the temperature, top-p, repetition penalty and seed as sliders. **Next token** shows the probability of the 3 to 20 most likely next tokens. M.A.I needs about 0.5 GB, so it runs on any GPU and on a CPU.
@@ -766,7 +770,7 @@ sweep is long enough that losing it to an interruption is a real cost.
 
 ```bash
 pip install -e ".[eval]"
-python bench/eval_model.py --ckpt outputs/models/mai-v1/mai-v1.pt   # every item, saved as mai-v1
+python bench/eval_model.py --ckpt outputs/models/mai-v2/mai-v2.pt   # every item, saved as mai-v2
 python bench/eval_model.py --hf HuggingFaceTB/SmolLM2-135M                              # any Hub model
 python bench/eval_model.py --ckpt ... --name quick --limit 100                          # the shared head
 python bench/eval_llm.py export --limit 100     # questions for a chat model, keys kept apart
@@ -864,18 +868,18 @@ choice contaminates an architecture comparison.
 
 | M.A.I | Tokens | Time on an RTX 4090 | Cost |
 |---|---|---|---|
-| **v1, done**, step 10k | 1.31B | 7.2 h | **$5.32**, billed $0.74/h |
-| **v2, next**, step 24k | +1.84B | +10.1 h | **+$3.42** at $0.34/h Community |
-| the full plan of v1, step 46k | +4.72B | +25.8 h | +$8.80 at $0.34/h |
+| **v1**, step 10k | 1.31B | 7.2 h | $5.32, billed $0.74/h |
+| **v2**, step 24k | +1.84B | +7.4 h, with `torch.compile` | +$6.61, billed $0.89/h |
+| **total** | **3.15B** | **14.6 h** | **$11.93** |
 
-💸 **Measured, not estimated**: 2.58 s per step of 131k tokens, so 50.8k tokens/s, **$1.86 per billion tokens** on a Community Cloud 4090 at October 2026 prices. Add about 2 h of setup, data preparation and benchmarks to every pod.
+💸 **Measured, not estimated**: with `torch.compile`, 1.88 s per step of 131k tokens, so 68.7k tokens/s at 37% MFU. That is **$3.60 per billion tokens** at the $0.89/h of a Secure Cloud 4090, and $1.37 at the $0.34/h of a Community one.
 
 <details>
 <summary>🖥️ <b>Which pod for M.A.I, with October 2026 prices</b></summary>
 
 | GPU, Community Cloud | $/h | tokens/s | M.A.I v2 run (1.84B tokens) | with the 2 h overhead |
 |---|---|---|---|---|
-| **RTX 4090 24 GB** | **0.34** | **50.8k, measured** | **10.1 h, $3.42** | **12 h, ~$4.10** |
+| **RTX 4090 24 GB** | **0.34** | **69.9k, measured with compile** | **7.3 h, $2.50** | **9.3 h, ~$3.20** |
 | RTX 5090 32 GB | 0.69 | ~75k, estimated | 6.8 h, $4.70 | 9 h, ~$6.10 |
 | A100 SXM 80 GB | 1.39 | ~100k, estimated | 5.1 h, $7.10 | 7 h, ~$9.90 |
 | H100 SXM 80 GB | 2.69 | ~200k, estimated | 2.6 h, $6.90 | 4.6 h, ~$12.30 |
@@ -911,7 +915,7 @@ never the constraint.
 </details>
 
 <details>
-<summary>🔁 <b>Train M.A.I v2 from v1</b></summary>
+<summary>🔁 <b>How M.A.I v2 was trained from v1</b></summary>
 
 ```bash
 # 1. the corpus again, validation shards now held out of train (~1 h, 12 GB)
@@ -921,7 +925,7 @@ python scripts/prepare_data.py --out /root/data/bilingual --tokens 6e9 --scratch
 python -m mllm.train --config configs/mai_v2.yaml --data-dir /root/data/bilingual     --eval-only outputs/models/bilingual-100m_run-02_date-2026-08-12/ckpt.pt
 
 # 3. resume v1 on the v2 plan, with the time and money already spent carried over
-python -m mllm.train --config configs/mai_v2.yaml --data-dir /root/data/bilingual     --resume outputs/models/bilingual-100m_run-02_date-2026-08-12/ckpt.pt     --cost-per-hour 0.34 --prior-hours 7.18 --prior-cost 5.32
+python -m mllm.train --config configs/mai_v2.yaml --data-dir /root/data/bilingual     --resume outputs/models/bilingual-100m_run-02_date-2026-08-12/ckpt.pt     --cost-per-hour 0.89 --prior-hours 7.18 --prior-cost 5.32 --set train.compile=true
 ```
 
 The run is named `mai-v2` from its config, so its files land in
@@ -957,7 +961,7 @@ step count and not the schedule.
 
 ## 🛣️ Roadmap
 
-✅ **M0 to M7 are done and green.** 🔄 **M8, training M.A.I v2 and benchmarking it, is next.**
+✅ **M0 to M8 are done and green**, M.A.I v2 included.
 
 <details>
 <summary>🛣️ <b>Milestones M0 to M8</b></summary>
@@ -972,7 +976,7 @@ step count and not the schedule.
 | **M5** | Model assembly, optimizer groups, WSD schedule, training loop | ✅ done, 269 tests green |
 | **M6** | Sampling, incremental decoding, speculative decoding | ✅ done, 297 tests green |
 | **M7** | Benchmarks (KV memory, throughput) and the ablation table | ✅ done, 322 tests green |
-| **M8** | Gradio demo, nine task benchmark, M.A.I v2 run with cost tracking | 🔄 code done, 363 tests green, run pending |
+| **M8** | Gradio demo, nine task benchmark, M.A.I v2 run with cost tracking | ✅ done, 363 tests green, v2 at 3.079 |
 
 </details>
 

@@ -196,13 +196,13 @@ script, the Gradio page and the benchmarks all go through it.
 | Medium | **Put the venv on the ephemeral disk** | it eats 2.7 GB of the 20 GB persistent volume for something regenerable in two minutes |
 | Done | **Measure MFU during training** | logged at every step as `throughput/mfu`, about 27% on the first run |
 | Done | **Log the cost** | `--cost-per-hour` logs `compute/cost_usd`, summed across resumes |
-| Medium | **`torch.compile`** | left off for the first run to keep failures interpretable. Worth a measured comparison afterwards |
+| Done | **`torch.compile`** | measured on v2: 37% more tokens per second, see below |
 | Low | **Parallel tokenization across processes** | 3.2M tok/s is already far past the download rate, so this only matters if HF gets faster |
 | Low | **Larger network volume** | 20 GB leaves 2.6 GB spare once data and checkpoints are in place, which forbids keeping several checkpoints |
 
 ---
 
-## Cost so far
+## Cost of M.A.I v1
 
 The pod actually billed **$0.74/h**, not the $0.34 quoted for a Community Cloud
 RTX 4090. Every estimate given during the run was therefore roughly half the
@@ -219,3 +219,87 @@ rather than trusting a price list.
 The two hours of debugging were not wasted: every one of those bugs would have
 surfaced during the 30 hour run instead, and three of them would have killed it
 outright.
+
+---
+
+## The M.A.I v2 run, one night on one pod
+
+M.A.I v1 resumed from step 9999 to step 24000 on `configs/mai_v2.yaml`, the
+learning rate held at 3e-4 until step 19200 then decayed linearly to 3e-5.
+RunPod RTX 4090, Secure Cloud, torch 2.8.0, Python 3.12, from 22:30 to 07:25.
+
+| Phase | Clock | What happened |
+|---|---|---|
+| Clone, install, tests | 22:31 | 361 of 363 green, see "torch 2.8" below |
+| Corpus, 6B tokens | 22:37 to 23:10 | **32 min** at 3.1M tokens/s with 8 download workers, half the first run's hour |
+| Reference benchmarks | 22:38 to 22:50 | GPT-2, SmolLM2-135M and CroissantLLM on every item, on the GPU the corpus job left idle |
+| v1 on the clean validation set | 23:11 | `loss/val` **3.332**, the baseline every v2 point is compared to |
+| Smoke test | 23:11 to 23:14 | 50.9k tokens/s eager, **69.9k compiled**, identical losses |
+| Training, 14000 steps | 23:15 to 06:40 | 7.4 h, 68.7k tokens/s, 37% MFU |
+| Benchmarks of v1 and v2, samples | 06:40 to 06:46 | every item, 2 min per model |
+
+| step | `loss/val` |
+|---|---|
+| 9999 (v1) | 3.332 |
+| 14499 | 3.251 |
+| 17999 | 3.216 |
+| 19200, decay starts | |
+| 21999 | 3.127 |
+| 23999 (v2) | **3.079** |
+
+The plateau bought 0.13 nats in 9200 steps (3.332 to 3.207 at step 18999). The
+decay bought another 0.13 in the last 4800, the same gain in half the steps,
+which is why WSD runs keep the decay for the end.
+
+### `torch.compile` was worth 37%
+
+Left off during v1 to keep failures readable. On torch 2.8 and Linux it took
+the step from 2.57 s to 1.88 s and the MFU from 27% to 38%, with losses equal
+to the third decimal over the same 30 steps. It cut the run from 10 h to 7.4 h,
+so about $2.40 at this price.
+
+One graph break remains: the rotary embedding's `_ensure_cache` calls
+`positions.max().item()`, which leaves the compiled graph at every layer and
+hits the recompile limit. Building the cos and sin tables once for
+`max_seq_len` at init would remove it, and probably some more step time.
+
+### The gradient norm climbs at the very end
+
+743 of the last 826 steps have a gradient norm above 2, against a median of
+0.58 during the plateau, and the last step reads 7.9. Clipping at 1.0 holds it, and
+`loss/val` keeps falling to the last evaluation. This rise near the end of a
+decayed schedule is a known effect of weight decay acting on weights whose
+scale the normalization ignores, while the learning rate goes to zero. For v3,
+decaying the weight decay along with the learning rate is the first thing to
+try.
+
+### torch 2.8 retired two sentinel tests
+
+The test on the RMSNorm upcast and the test on the `enable_gqa` regression
+fail on torch 2.8, as designed: they pin bugs of torch 2.5.1, and both are
+fixed. The fused RMSNorm and `enable_gqa=True` can become fast paths once the
+tests are made version aware.
+
+### Smaller things
+
+- **The pod was Secure Cloud at $0.89/h**, picked in the UI instead of the
+  $0.34/h Community one. Same card, 2.6x the price. `runpodctl pod list`
+  shows `costPerHr`, check it before launching.
+- **The run crossed midnight**, so `RunLogger` opened a second dated model
+  folder. The final weights were in `..._date-2026-10-13`, the one before
+  midnight held stale checkpoints.
+- **A pod exchanges files with a home connection at about 1 MB/s.** Sending
+  the 1.33 GB resumable checkpoint took 12 minutes, bringing it back about 20.
+  The weights alone (444 MB) are enough unless a v3 resumes from them.
+- **The local hooks refuse permission changes and deletions in a command.**
+  Scripts are sent with scp and run as `bash script.sh`.
+
+## Cost of M.A.I v2
+
+| | Time | Cost |
+|---|---|---|
+| Training compute, counted by the run | 7.42 h | **$6.61**, $3.60 per billion tokens |
+| Pod uptime, setup to deletion | ~8.9 h | **$7.89** billed at $0.89/h |
+| **M.A.I since its first step**, training only | **14.60 h** | **$11.93** |
+
+The same night on a Community Cloud 4090 would have cost about $3.10.

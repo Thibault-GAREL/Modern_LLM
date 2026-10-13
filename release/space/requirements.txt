@@ -1,0 +1,8 @@
+# Gradio itself comes from sdk_version in README.md, not from here.
+# The free tier is CPU only, so torch comes from the CPU index (200 MB, not 2 GB).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0
+tokenizers>=0.19
+requests>=2.31
+huggingface_hub>=0.23
+modern-llm @ git+https://github.com/Thibault-GAREL/Modern_LLM.git

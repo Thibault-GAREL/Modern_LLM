@@ -18,6 +18,7 @@ four English and French paragraphs::
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -28,6 +29,9 @@ from mllm.model import Transformer
 from mllm.utils.numerics import pick_device
 
 REPO = Path(__file__).resolve().parents[2]
+# where the light tokenizer backend keeps tokenizer.json, MLLM_CACHE overrides it
+# for an installed package, whose own folder may not be writable (a Space)
+CACHE = Path(os.environ.get("MLLM_CACHE", REPO / ".cache"))
 DEFAULT_TOKENIZER = "croissantllm/CroissantLLMBase"
 EOS_CANDIDATES = ("</s>", "<|endoftext|>", "<eos>")
 
@@ -74,7 +78,7 @@ class Tokenizer:
                 "    pip install tokenizers"
             ) from exc
 
-        path = REPO / ".cache" / f"{name.replace('/', '_')}_tokenizer.json"
+        path = CACHE / f"{name.replace('/', '_')}_tokenizer.json"
         if not path.exists():
             import requests
 
