@@ -1,0 +1,9 @@
+artifact_location: file:///workspace/Modern_LLM/mlruns/130907721658099312
+creation_time: 1791846924712
+effective_trace_archival_retention: null
+experiment_id: '130907721658099312'
+last_update_time: 1791846924712
+lifecycle_stage: active
+name: Modern_LLM
+trace_location: null
+workspace: default

@@ -1,0 +1,14 @@
+artifact_uri: file:///workspace/Modern_LLM/mlruns/130907721658099312/b5e0b23cd7464c8887580992f31e6bc0/artifacts
+end_time: 1791873644077
+entry_point_name: ''
+experiment_id: '130907721658099312'
+lifecycle_stage: active
+run_id: b5e0b23cd7464c8887580992f31e6bc0
+run_name: mai-v2_run-01
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1791846924975
+status: 3
+tags: []
+user_id: root
