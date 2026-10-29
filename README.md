@@ -535,6 +535,7 @@ The decoder block, with every switchable component and the config flag that cont
 │   ├── generate.py              # sampling, streaming, KV cache, speculative decoding
 │   ├── inference.py             # load a checkpoint and its tokenizer the way training saw them
 │   ├── run_logger.py            # readable run.log and MLflow tracking
+│   ├── layer_stats.py           # per-layer gradient, update, activation and expert load metrics
 │   └── utils/
 │       ├── seed.py              # set_determinism
 │       └── numerics.py          # fp32 policy, precision fallback
@@ -572,6 +573,13 @@ The decoder block, with every switchable component and the config flag that cont
 ├── papers/                      # 29 reference PDFs, gitignored
 │   ├── _INDEX.md                # paper, component, config flag, milestone
 │   └── download.sh              # restores the PDFs after a clone
+│
+├── visualisation/               # local web page: the model as a zoomable diagram, the MLflow runs live
+│   ├── server.py                # stdlib server, http://127.0.0.1:8765
+│   ├── build_arch.py            # measures a config's model and writes arch/<name>.json
+│   ├── archkit.py               # probe and diagram builder, flags any module left out
+│   ├── arch/                    # one diagram per profile (mai-v2, best, base, gemma_style, ...)
+│   └── viewer/                  # the page itself, uPlot vendored
 │
 ├── outputs/logs/                # config and metrics of every run (the weights are gitignored)
 ├── outputs/results/evals/       # benchmark results, one JSON per model, item by item
@@ -742,8 +750,29 @@ entropy and per-expert load on MoE layers. Merging them into one number is how
 a collapsing router goes unnoticed. Curves land in MLflow:
 
 ```bash
-mlflow ui        # from the repository root
+MLFLOW_ALLOW_FILE_STORE=true mlflow ui          # Linux / macOS, from the repository root
+$env:MLFLOW_ALLOW_FILE_STORE="true" ; mlflow ui # Windows PowerShell
 ```
+
+MLflow 3.15 and later refuses the `mlruns/` file store without this variable. The training script sets it on its own.
+
+</details>
+
+<details>
+<summary>🔭 <b>Explore the model and follow a training run</b> (local web page)</summary>
+
+```bash
+python visualisation/server.py                  # then open http://127.0.0.1:8765
+python visualisation/server.py --port 8766 --no-browser
+
+# regenerate a diagram after an architecture change (needs torch and the package)
+python visualisation/build_arch.py                                   # M.A.I v2
+python visualisation/build_arch.py --config configs/moe_1b_a200m.yaml
+```
+
+The **Architecture** tab draws the real model, from the trunk down to every projection, coloured by per-layer training metrics with a slider that replays the run. The **Training** tab reads the MLflow runs in `mlruns/` and follows a running training live.
+
+The server only needs the Python standard library. On a RunPod pod, start it with `--no-browser` and open a tunnel from your PC with `ssh -L 8765:localhost:8765 root@<ip> -p <port>`.
 
 </details>
 
@@ -997,6 +1026,7 @@ choice rather than an oversight.
 | **Custom kernels** beyond what PyTorch ships | A fused kernel changes the memory traffic, not the result. The one exception, FlashAttention, is reachable through SDPA and the `[flash]` extra. |
 | **Post-training** entirely: supervised fine-tuning, RLHF, reasoning traces | A separate field with its own ablations. This repo stops at the pretrained model. |
 | **The agent harness**: the loop, tool calling, context and cache management | Wraps a finished model instead of changing what it computes. A trained `mllm` checkpoint predicts tokens, it takes a harness to make it read files and run commands. Documented in [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), which drives this library as its local provider. |
+| **Attention-free mixers**: state space models, linear attention, modern RNNs | They replace attention instead of reshaping it, while every flag here keeps the 2017 block and changes what sits inside it. Documented in [Transformer Alternatives](https://github.com/Thibault-GAREL/Transformer_alternative). |
 | **Tokenizer training** | Upstream of the architecture. `mllm` takes token ids, and `bench/ablation.py` works on raw bytes precisely so no tokenizer choice contaminates a comparison. |
 | **Anything about closed models** | GPT, Claude and Gemini architectures are not published. What is written here comes from open-weights papers, and community inference is labelled as such. |
 
@@ -1029,6 +1059,10 @@ This project is based on the papers listed in [papers/_INDEX.md](papers/_INDEX.m
 Related work of mine, in the order they were built:
 
 - 🤖 [Original LLM](https://github.com/Thibault-GAREL/Language_Models), a bigram model and a 2017-style Transformer written from scratch. This repo picks up exactly where that one stops.
+
+Learning notes that go with this series (documentation repos, no shipped code yet):
+
 - 🔁 [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), the **harness** wrapped around a trained model (the loop, the tools, the context window), which uses `mllm` as its local provider.
+- 🌊 [Transformer Alternatives](https://github.com/Thibault-GAREL/Transformer_alternative), what tries to **replace** attention once the KV cache stops fitting (state space models, linear attention, modern RNNs and hybrids).
 
 Code created by me 😎, Thibault GAREL - [Github](https://github.com/Thibault-GAREL)
