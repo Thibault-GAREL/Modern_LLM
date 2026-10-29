@@ -1,0 +1,2144 @@
+{
+ "name": "moe-demo",
+ "title": "moe-demo",
+ "subtitle": "décodeur seul · 4 blocs · GQA · MoE · RoPE · RMSNorm pre",
+ "source": "configs/moe_1b_a200m.yaml --set model.n_layers=4 --set model.d_model=256 --set model.attention.n_heads=4 --set model.attention.n_kv_heads=2 --set model.moe.n_experts=16 --set model.moe.top_k=4 --set model.moe.n_shared_experts=1 --set model.moe.d_ff_expert=128 --set model.vocab_size=256",
+ "generated": "2026-10-28T17:08:21",
+ "torch": "2.5.1+cu121",
+ "symbols": {
+  "B": 5,
+  "T": 37
+ },
+ "params_total": 6469888,
+ "summary": [
+  [
+   "d_model",
+   "256"
+  ],
+  [
+   "blocs",
+   "4"
+  ],
+  [
+   "têtes",
+   "4 / 2 KV"
+  ],
+  [
+   "d_head",
+   "64"
+  ],
+  [
+   "d_ff",
+   "768"
+  ],
+  [
+   "actifs",
+   "3 M"
+  ],
+  [
+   "vocab",
+   "256"
+  ],
+  [
+   "contexte",
+   "2 048"
+  ]
+ ],
+ "coverage": {
+  "covered": 6469888,
+  "total": 6469888,
+  "missing": [],
+  "unknown_modules": [],
+  "never_called": []
+ },
+ "links": [
+  {
+   "from": "embed",
+   "to": "lm_head",
+   "label": "poids partagés",
+   "style": "dashed",
+   "kind": "embed"
+  }
+ ],
+ "root": {
+  "label": "moe-demo",
+  "kind": "stack",
+  "info": [
+   "décodeur seul · 4 blocs · GQA · MoE · RoPE · RMSNorm pre"
+  ],
+  "children": [
+   {
+    "label": "chemin principal",
+    "kind": "group",
+    "children": [
+     {
+      "label": "Tokens",
+      "kind": "input",
+      "info": [
+       "ids dans [0, 256)"
+      ],
+      "doc": "Le batch d'entrée, des identifiants de tokens.",
+      "scale": 3,
+      "id": "moe-demo/chemin-principal/tokens",
+      "out": "[B, T]"
+     },
+     {
+      "label": "Embedding",
+      "kind": "embed",
+      "module": "embed",
+      "info": [
+       "256 × 256",
+       "lié à la tête LM"
+      ],
+      "doc": "Table de correspondance token → vecteur. Liée à la tête de sortie, elle économise V × d paramètres.",
+      "scale": 3,
+      "id": "embed",
+      "params": 65536,
+      "cls": "Embedding",
+      "calls": 1,
+      "in": "[B, T]",
+      "out": "[B, T, 256]"
+     },
+     {
+      "label": "Tronc · 4 blocs",
+      "kind": "stack",
+      "module": "blocks",
+      "info": [
+       "d_model 256",
+       "position RoPE"
+      ],
+      "children": [
+       {
+        "label": "Bloc 0",
+        "kind": "block",
+        "module": "blocks.0",
+        "info": [
+         "GQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.0.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-0/attention-r-siduelle/rmsnorm",
+            "params": 256,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Grouped-Query Attention",
+            "kind": "attention",
+            "module": "blocks.0.attn.sublayer",
+            "info": [
+             "4 têtes · 2 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.0.attn.sublayer.q_proj",
+                  "info": [
+                   "256 → 256",
+                   "4 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/q-k-v/w-q/w-q",
+                  "params": 65536,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 256]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 4, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.0.attn.sublayer.k_proj",
+                  "info": [
+                   "256 → 128",
+                   "2 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/q-k-v/w-k/w-k",
+                  "params": 32768,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 128]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 2, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.0.attn.sublayer.v_proj",
+                  "info": [
+                   "256 → 128",
+                   "2 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/q-k-v/w-v/w-v",
+                  "params": 32768,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 128]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/attention-causale",
+              "out": "[B, 4, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.0.attn.sublayer.o_proj",
+              "info": [
+               "256 → 256",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention/w-o",
+              "params": 65536,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 256]",
+              "out": "[B, T, 256]"
+             }
+            ],
+            "doc": "Attention causale, 2 têtes K/V, chacune partagée par 2 têtes de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de GQA pour l'inférence.",
+            "ref": "Ainslie et al. 2023, arXiv 2305.13245",
+            "id": "trunk/bloc-0/attention-r-siduelle/grouped-query-attention",
+            "params": 196608,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-0/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-0/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.0.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-0/feed-forward-r-siduel/rmsnorm",
+            "params": 256,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.0.ffn.sublayer",
+            "info": [
+             "256 → 768 → 256"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.0.ffn.sublayer.gate_proj",
+                  "info": [
+                   "256 → 768"
+                  ],
+                  "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 196608,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 768]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.0.ffn.sublayer.up_proj",
+                "info": [
+                 "256 → 768"
+                ],
+                "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 196608,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 256]",
+                "out": "[B, T, 768]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.0.ffn.sublayer.down_proj",
+              "info": [
+               "768 → 256",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 196608,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 256]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 589824,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-0/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-0/feed-forward-r-siduel"
+         }
+        ],
+        "badge": "dense",
+        "id": "trunk/bloc-0",
+        "params": 786944,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 256]",
+        "out": "[B, T, 256]"
+       },
+       {
+        "label": "Bloc 1",
+        "kind": "block",
+        "module": "blocks.1",
+        "info": [
+         "GQA + MoE",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.1.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-1/attention-r-siduelle/rmsnorm",
+            "params": 256,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Grouped-Query Attention",
+            "kind": "attention",
+            "module": "blocks.1.attn.sublayer",
+            "info": [
+             "4 têtes · 2 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.1.attn.sublayer.q_proj",
+                  "info": [
+                   "256 → 256",
+                   "4 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/q-k-v/w-q/w-q",
+                  "params": 65536,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 256]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 4, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.1.attn.sublayer.k_proj",
+                  "info": [
+                   "256 → 128",
+                   "2 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/q-k-v/w-k/w-k",
+                  "params": 32768,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 128]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 2, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.1.attn.sublayer.v_proj",
+                  "info": [
+                   "256 → 128",
+                   "2 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/q-k-v/w-v/w-v",
+                  "params": 32768,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 128]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/attention-causale",
+              "out": "[B, 4, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.1.attn.sublayer.o_proj",
+              "info": [
+               "256 → 256",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention/w-o",
+              "params": 65536,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 256]",
+              "out": "[B, T, 256]"
+             }
+            ],
+            "doc": "Attention causale, 2 têtes K/V, chacune partagée par 2 têtes de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de GQA pour l'inférence.",
+            "ref": "Ainslie et al. 2023, arXiv 2305.13245",
+            "id": "trunk/bloc-1/attention-r-siduelle/grouped-query-attention",
+            "params": 196608,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-1/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-1/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.1.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-1/feed-forward-r-siduel/rmsnorm",
+            "params": 256,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Mixture of Experts",
+            "kind": "moe",
+            "module": "blocks.1.ffn.sublayer",
+            "info": [
+             "16 routés · top-4 · 1 partagés",
+             "d_ff expert 128"
+            ],
+            "children": [
+             {
+              "label": "Routeur",
+              "kind": "router",
+              "module": "blocks.1.ffn.sublayer.router",
+              "info": [
+               "256 → 16 scores · sigmoid",
+               "top-4 · biais de sélection"
+              ],
+              "doc": "Le biais par expert ne sert qu'à choisir le top-k, jamais à pondérer : l'équilibrage ne touche pas au calcul du modèle (DeepSeek-V3, arXiv 2412.19437).",
+              "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/routeur",
+              "params": 4096,
+              "cls": "Router",
+              "calls": 1,
+              "in": "[B·T, 256]",
+              "out": "[B·T, 4]"
+             },
+             {
+              "label": "experts",
+              "kind": "group",
+              "children": [
+               {
+                "label": "16 experts routés",
+                "kind": "moe",
+                "module": "blocks.1.ffn.sublayer.experts",
+                "info": [
+                 "chaque token en active 4"
+                ],
+                "children": [
+                 {
+                  "label": "Expert 0",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.0",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-0",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[64, 256]",
+                  "out": "[64, 256]"
+                 },
+                 {
+                  "label": "Expert 1",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.1",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-1",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[24, 256]",
+                  "out": "[24, 256]"
+                 },
+                 {
+                  "label": "Expert 2",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.2",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-2",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[19, 256]",
+                  "out": "[19, 256]"
+                 },
+                 {
+                  "label": "Expert 3",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.3",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-3",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[T−2, 256]",
+                  "out": "[T−2, 256]"
+                 },
+                 {
+                  "label": "Expert 4",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.4",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-4",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[64, 256]",
+                  "out": "[64, 256]"
+                 },
+                 {
+                  "label": "Expert 5",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.5",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-5",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[38, 256]",
+                  "out": "[38, 256]"
+                 },
+                 {
+                  "label": "Expert 6",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.6",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-6",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[72, 256]",
+                  "out": "[72, 256]"
+                 },
+                 {
+                  "label": "Expert 7",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.7",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-7",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[T−3, 256]",
+                  "out": "[T−3, 256]"
+                 },
+                 {
+                  "label": "Expert 8",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.8",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-8",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[40, 256]",
+                  "out": "[40, 256]"
+                 },
+                 {
+                  "label": "Expert 9",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.9",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-9",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[T−1, 256]",
+                  "out": "[T−1, 256]"
+                 },
+                 {
+                  "label": "Expert 10",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.10",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-10",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[60, 256]",
+                  "out": "[60, 256]"
+                 },
+                 {
+                  "label": "Expert 11",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.11",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-11",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[72, 256]",
+                  "out": "[72, 256]"
+                 },
+                 {
+                  "label": "Expert 12",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.12",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-12",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[24, 256]",
+                  "out": "[24, 256]"
+                 },
+                 {
+                  "label": "Expert 13",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.13",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-13",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[42, 256]",
+                  "out": "[42, 256]"
+                 },
+                 {
+                  "label": "Expert 14",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.14",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-14",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[82, 256]",
+                  "out": "[82, 256]"
+                 },
+                 {
+                  "label": "Expert 15",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.experts.15",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-15",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[T−3, 256]",
+                  "out": "[T−3, 256]"
+                 }
+                ],
+                "layout": "grid",
+                "flow": "none",
+                "cols": 4,
+                "doc": "Experts fins (DeepSeekMoE) : beaucoup de petits experts multiplient les combinaisons possibles.",
+                "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s",
+                "params": 1572864,
+                "cls": "ModuleList",
+                "calls": 0
+               },
+               {
+                "label": "Experts partagés",
+                "kind": "ffn",
+                "module": "blocks.1.ffn.sublayer.shared_experts",
+                "info": [
+                 "toujours actifs"
+                ],
+                "children": [
+                 {
+                  "label": "Partagé 0",
+                  "kind": "expert",
+                  "module": "blocks.1.ffn.sublayer.shared_experts.0",
+                  "info": [
+                   "128"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/experts-partag-s/partag-0",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[B·T, 256]",
+                  "out": "[B·T, 256]"
+                 }
+                ],
+                "flow": "none",
+                "doc": "Toujours actifs : le savoir commun n'est stocké qu'une fois au lieu d'être dupliqué dans chaque expert.",
+                "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts/experts-partag-s",
+                "params": 98304,
+                "cls": "ModuleList",
+                "calls": 0
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/experts"
+             },
+             {
+              "label": "Somme pondérée",
+              "kind": "add",
+              "doc": "Σ g_i · E_i(x) sur les experts choisis, plus les experts partagés.",
+              "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts/somme-pond-r-e"
+             }
+            ],
+            "doc": "Chaque token n'active que quelques experts : les paramètres grandissent, le calcul par token non. La charge des experts (mesure « Charge ») montre un routeur qui s'effondre bien avant la loss.",
+            "ref": "DeepSeekMoE 2024, arXiv 2401.06066",
+            "badge": "top-4",
+            "id": "trunk/bloc-1/feed-forward-r-siduel/mixture-of-experts",
+            "params": 1675264,
+            "cls": "MoE",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-1/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-1/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-1",
+        "params": 1872384,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 256]",
+        "out": "[B, T, 256]"
+       },
+       {
+        "label": "Bloc 2",
+        "kind": "block",
+        "module": "blocks.2",
+        "info": [
+         "GQA + MoE",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.2.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-2/attention-r-siduelle/rmsnorm",
+            "params": 256,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Grouped-Query Attention",
+            "kind": "attention",
+            "module": "blocks.2.attn.sublayer",
+            "info": [
+             "4 têtes · 2 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.2.attn.sublayer.q_proj",
+                  "info": [
+                   "256 → 256",
+                   "4 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/q-k-v/w-q/w-q",
+                  "params": 65536,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 256]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 4, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.2.attn.sublayer.k_proj",
+                  "info": [
+                   "256 → 128",
+                   "2 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/q-k-v/w-k/w-k",
+                  "params": 32768,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 128]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 2, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.2.attn.sublayer.v_proj",
+                  "info": [
+                   "256 → 128",
+                   "2 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/q-k-v/w-v/w-v",
+                  "params": 32768,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 128]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/attention-causale",
+              "out": "[B, 4, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.2.attn.sublayer.o_proj",
+              "info": [
+               "256 → 256",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention/w-o",
+              "params": 65536,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 256]",
+              "out": "[B, T, 256]"
+             }
+            ],
+            "doc": "Attention causale, 2 têtes K/V, chacune partagée par 2 têtes de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de GQA pour l'inférence.",
+            "ref": "Ainslie et al. 2023, arXiv 2305.13245",
+            "id": "trunk/bloc-2/attention-r-siduelle/grouped-query-attention",
+            "params": 196608,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-2/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-2/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.2.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-2/feed-forward-r-siduel/rmsnorm",
+            "params": 256,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Mixture of Experts",
+            "kind": "moe",
+            "module": "blocks.2.ffn.sublayer",
+            "info": [
+             "16 routés · top-4 · 1 partagés",
+             "d_ff expert 128"
+            ],
+            "children": [
+             {
+              "label": "Routeur",
+              "kind": "router",
+              "module": "blocks.2.ffn.sublayer.router",
+              "info": [
+               "256 → 16 scores · sigmoid",
+               "top-4 · biais de sélection"
+              ],
+              "doc": "Le biais par expert ne sert qu'à choisir le top-k, jamais à pondérer : l'équilibrage ne touche pas au calcul du modèle (DeepSeek-V3, arXiv 2412.19437).",
+              "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/routeur",
+              "params": 4096,
+              "cls": "Router",
+              "calls": 1,
+              "in": "[B·T, 256]",
+              "out": "[B·T, 4]"
+             },
+             {
+              "label": "experts",
+              "kind": "group",
+              "children": [
+               {
+                "label": "16 experts routés",
+                "kind": "moe",
+                "module": "blocks.2.ffn.sublayer.experts",
+                "info": [
+                 "chaque token en active 4"
+                ],
+                "children": [
+                 {
+                  "label": "Expert 0",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.0",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-0",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[T−2, 256]",
+                  "out": "[T−2, 256]"
+                 },
+                 {
+                  "label": "Expert 1",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.1",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-1",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[32, 256]",
+                  "out": "[32, 256]"
+                 },
+                 {
+                  "label": "Expert 2",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.2",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-2",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[45, 256]",
+                  "out": "[45, 256]"
+                 },
+                 {
+                  "label": "Expert 3",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.3",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-3",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[64, 256]",
+                  "out": "[64, 256]"
+                 },
+                 {
+                  "label": "Expert 4",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.4",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-4",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[31, 256]",
+                  "out": "[31, 256]"
+                 },
+                 {
+                  "label": "Expert 5",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.5",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-5",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[55, 256]",
+                  "out": "[55, 256]"
+                 },
+                 {
+                  "label": "Expert 6",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.6",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-6",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[T−2, 256]",
+                  "out": "[T−2, 256]"
+                 },
+                 {
+                  "label": "Expert 7",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.7",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-7",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[51, 256]",
+                  "out": "[51, 256]"
+                 },
+                 {
+                  "label": "Expert 8",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.8",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-8",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[31, 256]",
+                  "out": "[31, 256]"
+                 },
+                 {
+                  "label": "Expert 9",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.9",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-9",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[54, 256]",
+                  "out": "[54, 256]"
+                 },
+                 {
+                  "label": "Expert 10",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.10",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-10",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[T−3, 256]",
+                  "out": "[T−3, 256]"
+                 },
+                 {
+                  "label": "Expert 11",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.11",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-11",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[68, 256]",
+                  "out": "[68, 256]"
+                 },
+                 {
+                  "label": "Expert 12",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.12",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-12",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[81, 256]",
+                  "out": "[81, 256]"
+                 },
+                 {
+                  "label": "Expert 13",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.13",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-13",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[19, 256]",
+                  "out": "[19, 256]"
+                 },
+                 {
+                  "label": "Expert 14",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.14",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-14",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[54, 256]",
+                  "out": "[54, 256]"
+                 },
+                 {
+                  "label": "Expert 15",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.experts.15",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-15",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[51, 256]",
+                  "out": "[51, 256]"
+                 }
+                ],
+                "layout": "grid",
+                "flow": "none",
+                "cols": 4,
+                "doc": "Experts fins (DeepSeekMoE) : beaucoup de petits experts multiplient les combinaisons possibles.",
+                "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s",
+                "params": 1572864,
+                "cls": "ModuleList",
+                "calls": 0
+               },
+               {
+                "label": "Experts partagés",
+                "kind": "ffn",
+                "module": "blocks.2.ffn.sublayer.shared_experts",
+                "info": [
+                 "toujours actifs"
+                ],
+                "children": [
+                 {
+                  "label": "Partagé 0",
+                  "kind": "expert",
+                  "module": "blocks.2.ffn.sublayer.shared_experts.0",
+                  "info": [
+                   "128"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/experts-partag-s/partag-0",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[B·T, 256]",
+                  "out": "[B·T, 256]"
+                 }
+                ],
+                "flow": "none",
+                "doc": "Toujours actifs : le savoir commun n'est stocké qu'une fois au lieu d'être dupliqué dans chaque expert.",
+                "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts/experts-partag-s",
+                "params": 98304,
+                "cls": "ModuleList",
+                "calls": 0
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/experts"
+             },
+             {
+              "label": "Somme pondérée",
+              "kind": "add",
+              "doc": "Σ g_i · E_i(x) sur les experts choisis, plus les experts partagés.",
+              "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts/somme-pond-r-e"
+             }
+            ],
+            "doc": "Chaque token n'active que quelques experts : les paramètres grandissent, le calcul par token non. La charge des experts (mesure « Charge ») montre un routeur qui s'effondre bien avant la loss.",
+            "ref": "DeepSeekMoE 2024, arXiv 2401.06066",
+            "badge": "top-4",
+            "id": "trunk/bloc-2/feed-forward-r-siduel/mixture-of-experts",
+            "params": 1675264,
+            "cls": "MoE",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-2/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-2/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-2",
+        "params": 1872384,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 256]",
+        "out": "[B, T, 256]"
+       },
+       {
+        "label": "Bloc 3",
+        "kind": "block",
+        "module": "blocks.3",
+        "info": [
+         "GQA + MoE",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.3.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-3/attention-r-siduelle/rmsnorm",
+            "params": 256,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Grouped-Query Attention",
+            "kind": "attention",
+            "module": "blocks.3.attn.sublayer",
+            "info": [
+             "4 têtes · 2 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.3.attn.sublayer.q_proj",
+                  "info": [
+                   "256 → 256",
+                   "4 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/q-k-v/w-q/w-q",
+                  "params": 65536,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 256]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 4, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.3.attn.sublayer.k_proj",
+                  "info": [
+                   "256 → 128",
+                   "2 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/q-k-v/w-k/w-k",
+                  "params": 32768,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 128]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 2, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.3.attn.sublayer.v_proj",
+                  "info": [
+                   "256 → 128",
+                   "2 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/q-k-v/w-v/w-v",
+                  "params": 32768,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 256]",
+                  "out": "[B, T, 128]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/attention-causale",
+              "out": "[B, 4, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.3.attn.sublayer.o_proj",
+              "info": [
+               "256 → 256",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention/w-o",
+              "params": 65536,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 256]",
+              "out": "[B, T, 256]"
+             }
+            ],
+            "doc": "Attention causale, 2 têtes K/V, chacune partagée par 2 têtes de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de GQA pour l'inférence.",
+            "ref": "Ainslie et al. 2023, arXiv 2305.13245",
+            "id": "trunk/bloc-3/attention-r-siduelle/grouped-query-attention",
+            "params": 196608,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-3/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-3/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.3.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-3/feed-forward-r-siduel/rmsnorm",
+            "params": 256,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Mixture of Experts",
+            "kind": "moe",
+            "module": "blocks.3.ffn.sublayer",
+            "info": [
+             "16 routés · top-4 · 1 partagés",
+             "d_ff expert 128"
+            ],
+            "children": [
+             {
+              "label": "Routeur",
+              "kind": "router",
+              "module": "blocks.3.ffn.sublayer.router",
+              "info": [
+               "256 → 16 scores · sigmoid",
+               "top-4 · biais de sélection"
+              ],
+              "doc": "Le biais par expert ne sert qu'à choisir le top-k, jamais à pondérer : l'équilibrage ne touche pas au calcul du modèle (DeepSeek-V3, arXiv 2412.19437).",
+              "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/routeur",
+              "params": 4096,
+              "cls": "Router",
+              "calls": 1,
+              "in": "[B·T, 256]",
+              "out": "[B·T, 4]"
+             },
+             {
+              "label": "experts",
+              "kind": "group",
+              "children": [
+               {
+                "label": "16 experts routés",
+                "kind": "moe",
+                "module": "blocks.3.ffn.sublayer.experts",
+                "info": [
+                 "chaque token en active 4"
+                ],
+                "children": [
+                 {
+                  "label": "Expert 0",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.0",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-0",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[16, 256]",
+                  "out": "[16, 256]"
+                 },
+                 {
+                  "label": "Expert 1",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.1",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-1",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[40, 256]",
+                  "out": "[40, 256]"
+                 },
+                 {
+                  "label": "Expert 2",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.2",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-2",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[46, 256]",
+                  "out": "[46, 256]"
+                 },
+                 {
+                  "label": "Expert 3",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.3",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-3",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[63, 256]",
+                  "out": "[63, 256]"
+                 },
+                 {
+                  "label": "Expert 4",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.4",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-4",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[107, 256]",
+                  "out": "[107, 256]"
+                 },
+                 {
+                  "label": "Expert 5",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.5",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-5",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[22, 256]",
+                  "out": "[22, 256]"
+                 },
+                 {
+                  "label": "Expert 6",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.6",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-6",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[51, 256]",
+                  "out": "[51, 256]"
+                 },
+                 {
+                  "label": "Expert 7",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.7",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-7",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[12, 256]",
+                  "out": "[12, 256]"
+                 },
+                 {
+                  "label": "Expert 8",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.8",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-8",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[20, 256]",
+                  "out": "[20, 256]"
+                 },
+                 {
+                  "label": "Expert 9",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.9",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-9",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[50, 256]",
+                  "out": "[50, 256]"
+                 },
+                 {
+                  "label": "Expert 10",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.10",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-10",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[53, 256]",
+                  "out": "[53, 256]"
+                 },
+                 {
+                  "label": "Expert 11",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.11",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-11",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[50, 256]",
+                  "out": "[50, 256]"
+                 },
+                 {
+                  "label": "Expert 12",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.12",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-12",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[28, 256]",
+                  "out": "[28, 256]"
+                 },
+                 {
+                  "label": "Expert 13",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.13",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-13",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[104, 256]",
+                  "out": "[104, 256]"
+                 },
+                 {
+                  "label": "Expert 14",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.14",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-14",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[29, 256]",
+                  "out": "[29, 256]"
+                 },
+                 {
+                  "label": "Expert 15",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.experts.15",
+                  "info": [
+                   "SwiGLU 128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s/expert-15",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[49, 256]",
+                  "out": "[49, 256]"
+                 }
+                ],
+                "layout": "grid",
+                "flow": "none",
+                "cols": 4,
+                "doc": "Experts fins (DeepSeekMoE) : beaucoup de petits experts multiplient les combinaisons possibles.",
+                "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/16-experts-rout-s",
+                "params": 1572864,
+                "cls": "ModuleList",
+                "calls": 0
+               },
+               {
+                "label": "Experts partagés",
+                "kind": "ffn",
+                "module": "blocks.3.ffn.sublayer.shared_experts",
+                "info": [
+                 "toujours actifs"
+                ],
+                "children": [
+                 {
+                  "label": "Partagé 0",
+                  "kind": "expert",
+                  "module": "blocks.3.ffn.sublayer.shared_experts.0",
+                  "info": [
+                   "128"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/experts-partag-s/partag-0",
+                  "params": 98304,
+                  "cls": "GatedMLP",
+                  "calls": 1,
+                  "in": "[B·T, 256]",
+                  "out": "[B·T, 256]"
+                 }
+                ],
+                "flow": "none",
+                "doc": "Toujours actifs : le savoir commun n'est stocké qu'une fois au lieu d'être dupliqué dans chaque expert.",
+                "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts/experts-partag-s",
+                "params": 98304,
+                "cls": "ModuleList",
+                "calls": 0
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/experts"
+             },
+             {
+              "label": "Somme pondérée",
+              "kind": "add",
+              "doc": "Σ g_i · E_i(x) sur les experts choisis, plus les experts partagés.",
+              "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts/somme-pond-r-e"
+             }
+            ],
+            "doc": "Chaque token n'active que quelques experts : les paramètres grandissent, le calcul par token non. La charge des experts (mesure « Charge ») montre un routeur qui s'effondre bien avant la loss.",
+            "ref": "DeepSeekMoE 2024, arXiv 2401.06066",
+            "badge": "top-4",
+            "id": "trunk/bloc-3/feed-forward-r-siduel/mixture-of-experts",
+            "params": 1675264,
+            "cls": "MoE",
+            "calls": 1,
+            "in": "[B, T, 256]",
+            "out": "[B, T, 256]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-3/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-3/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-3",
+        "params": 1872384,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 256]",
+        "out": "[B, T, 256]"
+       }
+      ],
+      "layout": "row",
+      "doc": "La pile de blocs décodeurs. Chaque bloc lit et réécrit le flux résiduel de dimension d_model.",
+      "badge": "×4",
+      "id": "trunk",
+      "params": 6404096,
+      "cls": "ModuleList",
+      "calls": 0
+     },
+     {
+      "label": "Norm finale",
+      "kind": "norm",
+      "module": "norm_f",
+      "info": [
+       "ε 1e-05"
+      ],
+      "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+      "id": "norm_f",
+      "scale": 3,
+      "params": 256,
+      "cls": "RMSNorm",
+      "calls": 1,
+      "in": "[B, T, 256]",
+      "out": "[B, T, 256]"
+     },
+     {
+      "label": "Tête LM",
+      "kind": "head",
+      "module": "lm_head",
+      "info": [
+       "256 → 256",
+       "poids de l'embedding"
+      ],
+      "doc": "Projection vers le vocabulaire, logits en fp32 (un softmax sur 32k en bf16 perd la queue).",
+      "scale": 3,
+      "id": "lm_head",
+      "params": 0,
+      "cls": "LMHead",
+      "calls": 1,
+      "in": "[B, T, 256]",
+      "out": "[B, T, 256]"
+     },
+     {
+      "label": "Logits",
+      "kind": "output",
+      "info": [
+       "token suivant"
+      ],
+      "scale": 3,
+      "id": "moe-demo/chemin-principal/logits",
+      "out": "[B, T, 256]"
+     },
+     {
+      "label": "Pertes",
+      "kind": "loss",
+      "info": [
+       "cross-entropy",
+       "z-loss 0.0001",
+       "aux MoE + z-loss routeur"
+      ],
+      "doc": "Chaque terme est journalisé séparément (loss/ce, loss/z_loss, loss/mtp, loss/moe) : fusionnés, un routeur qui diverge deviendrait invisible.",
+      "scale": 3,
+      "id": "loss"
+     }
+    ],
+    "layout": "row",
+    "box": false,
+    "id": "moe-demo/chemin-principal"
+   }
+  ],
+  "flow": "none",
+  "doc": "Le modèle complet, mesuré sur le vrai code de mllm.model.Transformer.",
+  "id": "moe-demo"
+ }
+}

@@ -1,0 +1,1762 @@
+{
+ "name": "base",
+ "title": "base",
+ "subtitle": "décodeur seul · 6 blocs · MHA · MLP · sinusoïdale · LayerNorm post",
+ "source": "configs/base.yaml",
+ "generated": "2026-10-28T17:08:02",
+ "torch": "2.5.1+cu121",
+ "symbols": {
+  "B": 5,
+  "T": 37
+ },
+ "params_total": 35299328,
+ "summary": [
+  [
+   "d_model",
+   "512"
+  ],
+  [
+   "blocs",
+   "6"
+  ],
+  [
+   "têtes",
+   "8 / 8 KV"
+  ],
+  [
+   "d_head",
+   "64"
+  ],
+  [
+   "d_ff",
+   "2 048"
+  ],
+  [
+   "vocab",
+   "32 000"
+  ],
+  [
+   "contexte",
+   "512"
+  ]
+ ],
+ "coverage": {
+  "covered": 35299328,
+  "total": 35299328,
+  "missing": [],
+  "unknown_modules": [],
+  "never_called": []
+ },
+ "links": [
+  {
+   "from": "embed",
+   "to": "lm_head",
+   "label": "poids partagés",
+   "style": "dashed",
+   "kind": "embed"
+  }
+ ],
+ "root": {
+  "label": "base",
+  "kind": "stack",
+  "info": [
+   "décodeur seul · 6 blocs · MHA · MLP · sinusoïdale · LayerNorm post"
+  ],
+  "children": [
+   {
+    "label": "chemin principal",
+    "kind": "group",
+    "children": [
+     {
+      "label": "Tokens",
+      "kind": "input",
+      "info": [
+       "ids dans [0, 32 000)"
+      ],
+      "doc": "Le batch d'entrée, des identifiants de tokens.",
+      "scale": 3,
+      "id": "base/chemin-principal/tokens",
+      "out": "[B, T]"
+     },
+     {
+      "label": "entrée",
+      "kind": "group",
+      "children": [
+       {
+        "label": "token | position",
+        "kind": "group",
+        "children": [
+         {
+          "label": "Embedding",
+          "kind": "embed",
+          "module": "embed",
+          "info": [
+           "32 000 × 512",
+           "lié à la tête LM"
+          ],
+          "doc": "Table de correspondance token → vecteur. Liée à la tête de sortie, elle économise V × d paramètres.",
+          "scale": 3,
+          "id": "embed",
+          "params": 16384000,
+          "cls": "Embedding",
+          "calls": 1,
+          "in": "[B, T]",
+          "out": "[B, T, 512]"
+         },
+         {
+          "label": "Position sinusoïdale",
+          "kind": "pos",
+          "info": [
+           "512 positions"
+          ],
+          "doc": "Embedding de position absolu ajouté à l'entrée (2017).",
+          "id": "base/chemin-principal/entr-e/token-position/position-sinuso-dale",
+          "out": "[T, 512]"
+         }
+        ],
+        "layout": "row",
+        "flow": "par",
+        "box": false,
+        "id": "base/chemin-principal/entr-e/token-position"
+       },
+       {
+        "label": "Addition",
+        "kind": "add",
+        "doc": "x = emb(token) + pos(t)",
+        "id": "base/chemin-principal/entr-e/addition"
+       }
+      ],
+      "box": false,
+      "id": "base/chemin-principal/entr-e"
+     },
+     {
+      "label": "Tronc · 6 blocs",
+      "kind": "stack",
+      "module": "blocks",
+      "info": [
+       "d_model 512",
+       "position sinusoïdale"
+      ],
+      "children": [
+       {
+        "label": "Bloc 0",
+        "kind": "block",
+        "module": "blocks.0",
+        "info": [
+         "MHA + MLP",
+         "norm post"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "Multi-Head Attention",
+            "kind": "attention",
+            "module": "blocks.0.attn.sublayer",
+            "info": [
+             "8 têtes · 8 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.0.attn.sublayer.q_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention/q-k-v/w-q/w-q",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.0.attn.sublayer.k_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention/q-k-v/w-k/w-k",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.0.attn.sublayer.v_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention/q-k-v/w-v/w-v",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention/attention-causale",
+              "out": "[B, 8, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.0.attn.sublayer.o_proj",
+              "info": [
+               "512 → 512",
+               "avec biais"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention/w-o",
+              "params": 262656,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Attention causale, une tête K/V par tête de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de MHA pour l'inférence.",
+            "ref": "Vaswani et al. 2017, arXiv 1706.03762",
+            "id": "trunk/bloc-0/attention-r-siduelle/multi-head-attention",
+            "params": 1050624,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-0/attention-r-siduelle/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.0.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-0/attention-r-siduelle/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-0/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "MLP feed-forward",
+            "kind": "ffn",
+            "module": "blocks.0.ffn.sublayer",
+            "info": [
+             "512 → 2 048 → 512"
+            ],
+            "children": [
+             {
+              "label": "W_up",
+              "kind": "linear",
+              "module": "blocks.0.ffn.sublayer.up_proj",
+              "info": [
+               "512 → 2 048",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-0/feed-forward-r-siduel/mlp-feed-forward/w-up",
+              "params": 1050624,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 2048]"
+             },
+             {
+              "label": "RELU",
+              "kind": "act",
+              "id": "trunk/bloc-0/feed-forward-r-siduel/mlp-feed-forward/relu",
+              "out": "[B, T, 2 048]"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.0.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 512",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-0/feed-forward-r-siduel/mlp-feed-forward/w-down",
+              "params": 1049088,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Le bloc de 2017 : une activation entre deux matrices.",
+            "id": "trunk/bloc-0/feed-forward-r-siduel/mlp-feed-forward",
+            "params": 2099712,
+            "cls": "MLP",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-0/feed-forward-r-siduel/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.0.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-0/feed-forward-r-siduel/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-0/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-0",
+        "params": 3152384,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 512]",
+        "out": "[B, T, 512]"
+       },
+       {
+        "label": "Bloc 1",
+        "kind": "block",
+        "module": "blocks.1",
+        "info": [
+         "MHA + MLP",
+         "norm post"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "Multi-Head Attention",
+            "kind": "attention",
+            "module": "blocks.1.attn.sublayer",
+            "info": [
+             "8 têtes · 8 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.1.attn.sublayer.q_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention/q-k-v/w-q/w-q",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.1.attn.sublayer.k_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention/q-k-v/w-k/w-k",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.1.attn.sublayer.v_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention/q-k-v/w-v/w-v",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention/attention-causale",
+              "out": "[B, 8, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.1.attn.sublayer.o_proj",
+              "info": [
+               "512 → 512",
+               "avec biais"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention/w-o",
+              "params": 262656,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Attention causale, une tête K/V par tête de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de MHA pour l'inférence.",
+            "ref": "Vaswani et al. 2017, arXiv 1706.03762",
+            "id": "trunk/bloc-1/attention-r-siduelle/multi-head-attention",
+            "params": 1050624,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-1/attention-r-siduelle/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.1.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-1/attention-r-siduelle/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-1/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "MLP feed-forward",
+            "kind": "ffn",
+            "module": "blocks.1.ffn.sublayer",
+            "info": [
+             "512 → 2 048 → 512"
+            ],
+            "children": [
+             {
+              "label": "W_up",
+              "kind": "linear",
+              "module": "blocks.1.ffn.sublayer.up_proj",
+              "info": [
+               "512 → 2 048",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-1/feed-forward-r-siduel/mlp-feed-forward/w-up",
+              "params": 1050624,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 2048]"
+             },
+             {
+              "label": "RELU",
+              "kind": "act",
+              "id": "trunk/bloc-1/feed-forward-r-siduel/mlp-feed-forward/relu",
+              "out": "[B, T, 2 048]"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.1.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 512",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-1/feed-forward-r-siduel/mlp-feed-forward/w-down",
+              "params": 1049088,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Le bloc de 2017 : une activation entre deux matrices.",
+            "id": "trunk/bloc-1/feed-forward-r-siduel/mlp-feed-forward",
+            "params": 2099712,
+            "cls": "MLP",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-1/feed-forward-r-siduel/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.1.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-1/feed-forward-r-siduel/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-1/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-1",
+        "params": 3152384,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 512]",
+        "out": "[B, T, 512]"
+       },
+       {
+        "label": "Bloc 2",
+        "kind": "block",
+        "module": "blocks.2",
+        "info": [
+         "MHA + MLP",
+         "norm post"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "Multi-Head Attention",
+            "kind": "attention",
+            "module": "blocks.2.attn.sublayer",
+            "info": [
+             "8 têtes · 8 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.2.attn.sublayer.q_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention/q-k-v/w-q/w-q",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.2.attn.sublayer.k_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention/q-k-v/w-k/w-k",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.2.attn.sublayer.v_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention/q-k-v/w-v/w-v",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention/attention-causale",
+              "out": "[B, 8, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.2.attn.sublayer.o_proj",
+              "info": [
+               "512 → 512",
+               "avec biais"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention/w-o",
+              "params": 262656,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Attention causale, une tête K/V par tête de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de MHA pour l'inférence.",
+            "ref": "Vaswani et al. 2017, arXiv 1706.03762",
+            "id": "trunk/bloc-2/attention-r-siduelle/multi-head-attention",
+            "params": 1050624,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-2/attention-r-siduelle/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.2.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-2/attention-r-siduelle/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-2/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "MLP feed-forward",
+            "kind": "ffn",
+            "module": "blocks.2.ffn.sublayer",
+            "info": [
+             "512 → 2 048 → 512"
+            ],
+            "children": [
+             {
+              "label": "W_up",
+              "kind": "linear",
+              "module": "blocks.2.ffn.sublayer.up_proj",
+              "info": [
+               "512 → 2 048",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-2/feed-forward-r-siduel/mlp-feed-forward/w-up",
+              "params": 1050624,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 2048]"
+             },
+             {
+              "label": "RELU",
+              "kind": "act",
+              "id": "trunk/bloc-2/feed-forward-r-siduel/mlp-feed-forward/relu",
+              "out": "[B, T, 2 048]"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.2.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 512",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-2/feed-forward-r-siduel/mlp-feed-forward/w-down",
+              "params": 1049088,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Le bloc de 2017 : une activation entre deux matrices.",
+            "id": "trunk/bloc-2/feed-forward-r-siduel/mlp-feed-forward",
+            "params": 2099712,
+            "cls": "MLP",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-2/feed-forward-r-siduel/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.2.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-2/feed-forward-r-siduel/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-2/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-2",
+        "params": 3152384,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 512]",
+        "out": "[B, T, 512]"
+       },
+       {
+        "label": "Bloc 3",
+        "kind": "block",
+        "module": "blocks.3",
+        "info": [
+         "MHA + MLP",
+         "norm post"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "Multi-Head Attention",
+            "kind": "attention",
+            "module": "blocks.3.attn.sublayer",
+            "info": [
+             "8 têtes · 8 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.3.attn.sublayer.q_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention/q-k-v/w-q/w-q",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.3.attn.sublayer.k_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention/q-k-v/w-k/w-k",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.3.attn.sublayer.v_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention/q-k-v/w-v/w-v",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention/attention-causale",
+              "out": "[B, 8, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.3.attn.sublayer.o_proj",
+              "info": [
+               "512 → 512",
+               "avec biais"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention/w-o",
+              "params": 262656,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Attention causale, une tête K/V par tête de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de MHA pour l'inférence.",
+            "ref": "Vaswani et al. 2017, arXiv 1706.03762",
+            "id": "trunk/bloc-3/attention-r-siduelle/multi-head-attention",
+            "params": 1050624,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-3/attention-r-siduelle/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.3.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-3/attention-r-siduelle/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-3/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "MLP feed-forward",
+            "kind": "ffn",
+            "module": "blocks.3.ffn.sublayer",
+            "info": [
+             "512 → 2 048 → 512"
+            ],
+            "children": [
+             {
+              "label": "W_up",
+              "kind": "linear",
+              "module": "blocks.3.ffn.sublayer.up_proj",
+              "info": [
+               "512 → 2 048",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-3/feed-forward-r-siduel/mlp-feed-forward/w-up",
+              "params": 1050624,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 2048]"
+             },
+             {
+              "label": "RELU",
+              "kind": "act",
+              "id": "trunk/bloc-3/feed-forward-r-siduel/mlp-feed-forward/relu",
+              "out": "[B, T, 2 048]"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.3.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 512",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-3/feed-forward-r-siduel/mlp-feed-forward/w-down",
+              "params": 1049088,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Le bloc de 2017 : une activation entre deux matrices.",
+            "id": "trunk/bloc-3/feed-forward-r-siduel/mlp-feed-forward",
+            "params": 2099712,
+            "cls": "MLP",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-3/feed-forward-r-siduel/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.3.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-3/feed-forward-r-siduel/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-3/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-3",
+        "params": 3152384,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 512]",
+        "out": "[B, T, 512]"
+       },
+       {
+        "label": "Bloc 4",
+        "kind": "block",
+        "module": "blocks.4",
+        "info": [
+         "MHA + MLP",
+         "norm post"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "Multi-Head Attention",
+            "kind": "attention",
+            "module": "blocks.4.attn.sublayer",
+            "info": [
+             "8 têtes · 8 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.4.attn.sublayer.q_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention/q-k-v/w-q/w-q",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.4.attn.sublayer.k_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention/q-k-v/w-k/w-k",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.4.attn.sublayer.v_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention/q-k-v/w-v/w-v",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention/attention-causale",
+              "out": "[B, 8, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.4.attn.sublayer.o_proj",
+              "info": [
+               "512 → 512",
+               "avec biais"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention/w-o",
+              "params": 262656,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Attention causale, une tête K/V par tête de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de MHA pour l'inférence.",
+            "ref": "Vaswani et al. 2017, arXiv 1706.03762",
+            "id": "trunk/bloc-4/attention-r-siduelle/multi-head-attention",
+            "params": 1050624,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-4/attention-r-siduelle/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.4.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-4/attention-r-siduelle/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-4/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "MLP feed-forward",
+            "kind": "ffn",
+            "module": "blocks.4.ffn.sublayer",
+            "info": [
+             "512 → 2 048 → 512"
+            ],
+            "children": [
+             {
+              "label": "W_up",
+              "kind": "linear",
+              "module": "blocks.4.ffn.sublayer.up_proj",
+              "info": [
+               "512 → 2 048",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-4/feed-forward-r-siduel/mlp-feed-forward/w-up",
+              "params": 1050624,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 2048]"
+             },
+             {
+              "label": "RELU",
+              "kind": "act",
+              "id": "trunk/bloc-4/feed-forward-r-siduel/mlp-feed-forward/relu",
+              "out": "[B, T, 2 048]"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.4.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 512",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-4/feed-forward-r-siduel/mlp-feed-forward/w-down",
+              "params": 1049088,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Le bloc de 2017 : une activation entre deux matrices.",
+            "id": "trunk/bloc-4/feed-forward-r-siduel/mlp-feed-forward",
+            "params": 2099712,
+            "cls": "MLP",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-4/feed-forward-r-siduel/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.4.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-4/feed-forward-r-siduel/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-4/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-4",
+        "params": 3152384,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 512]",
+        "out": "[B, T, 512]"
+       },
+       {
+        "label": "Bloc 5",
+        "kind": "block",
+        "module": "blocks.5",
+        "info": [
+         "MHA + MLP",
+         "norm post"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "Multi-Head Attention",
+            "kind": "attention",
+            "module": "blocks.5.attn.sublayer",
+            "info": [
+             "8 têtes · 8 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.5.attn.sublayer.q_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention/q-k-v/w-q/w-q",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.5.attn.sublayer.k_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention/q-k-v/w-k/w-k",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.5.attn.sublayer.v_proj",
+                  "info": [
+                   "512 → 512",
+                   "8 têtes × 64",
+                   "avec biais"
+                  ],
+                  "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention/q-k-v/w-v/w-v",
+                  "params": 262656,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 512]",
+                  "out": "[B, T, 512]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention/attention-causale",
+              "out": "[B, 8, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.5.attn.sublayer.o_proj",
+              "info": [
+               "512 → 512",
+               "avec biais"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention/w-o",
+              "params": 262656,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Attention causale, une tête K/V par tête de requête. Le cache KV ne garde que les têtes K/V, d'où le choix de MHA pour l'inférence.",
+            "ref": "Vaswani et al. 2017, arXiv 1706.03762",
+            "id": "trunk/bloc-5/attention-r-siduelle/multi-head-attention",
+            "params": 1050624,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-5/attention-r-siduelle/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.5.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-5/attention-r-siduelle/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-5/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "MLP feed-forward",
+            "kind": "ffn",
+            "module": "blocks.5.ffn.sublayer",
+            "info": [
+             "512 → 2 048 → 512"
+            ],
+            "children": [
+             {
+              "label": "W_up",
+              "kind": "linear",
+              "module": "blocks.5.ffn.sublayer.up_proj",
+              "info": [
+               "512 → 2 048",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-5/feed-forward-r-siduel/mlp-feed-forward/w-up",
+              "params": 1050624,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 512]",
+              "out": "[B, T, 2048]"
+             },
+             {
+              "label": "RELU",
+              "kind": "act",
+              "id": "trunk/bloc-5/feed-forward-r-siduel/mlp-feed-forward/relu",
+              "out": "[B, T, 2 048]"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.5.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 512",
+               "avec biais"
+              ],
+              "id": "trunk/bloc-5/feed-forward-r-siduel/mlp-feed-forward/w-down",
+              "params": 1049088,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 512]"
+             }
+            ],
+            "doc": "Le bloc de 2017 : une activation entre deux matrices.",
+            "id": "trunk/bloc-5/feed-forward-r-siduel/mlp-feed-forward",
+            "params": 2099712,
+            "cls": "MLP",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-5/feed-forward-r-siduel/addition"
+           },
+           {
+            "label": "LayerNorm",
+            "kind": "norm",
+            "module": "blocks.5.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+            "id": "trunk/bloc-5/feed-forward-r-siduel/layernorm",
+            "params": 1024,
+            "cls": "LayerNorm",
+            "calls": 1,
+            "in": "[B, T, 512]",
+            "out": "[B, T, 512]"
+           }
+          ],
+          "box": false,
+          "skip": "addition",
+          "id": "trunk/bloc-5/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-5",
+        "params": 3152384,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 512]",
+        "out": "[B, T, 512]"
+       }
+      ],
+      "layout": "row",
+      "doc": "La pile de blocs décodeurs. Chaque bloc lit et réécrit le flux résiduel de dimension d_model.",
+      "badge": "×6",
+      "id": "trunk",
+      "params": 18914304,
+      "cls": "ModuleList",
+      "calls": 0
+     },
+     {
+      "label": "Norm finale",
+      "kind": "norm",
+      "module": "norm_f",
+      "info": [
+       "ε 1e-05"
+      ],
+      "doc": "La normalisation de 2017 : moyenne et variance, gain et biais appris.",
+      "id": "norm_f",
+      "scale": 3,
+      "params": 1024,
+      "cls": "LayerNorm",
+      "calls": 1,
+      "in": "[B, T, 512]",
+      "out": "[B, T, 512]"
+     },
+     {
+      "label": "Tête LM",
+      "kind": "head",
+      "module": "lm_head",
+      "info": [
+       "512 → 32 000",
+       "poids de l'embedding"
+      ],
+      "doc": "Projection vers le vocabulaire, logits en fp32 (un softmax sur 32k en bf16 perd la queue).",
+      "scale": 3,
+      "id": "lm_head",
+      "params": 0,
+      "cls": "LMHead",
+      "calls": 1,
+      "in": "[B, T, 512]",
+      "out": "[B, T, 32000]"
+     },
+     {
+      "label": "Logits",
+      "kind": "output",
+      "info": [
+       "token suivant"
+      ],
+      "scale": 3,
+      "id": "base/chemin-principal/logits",
+      "out": "[B, T, 32 000]"
+     },
+     {
+      "label": "Pertes",
+      "kind": "loss",
+      "info": [
+       "cross-entropy",
+       "z-loss 0.0001"
+      ],
+      "doc": "Chaque terme est journalisé séparément (loss/ce, loss/z_loss, loss/mtp, loss/moe) : fusionnés, un routeur qui diverge deviendrait invisible.",
+      "scale": 3,
+      "id": "loss"
+     }
+    ],
+    "layout": "row",
+    "box": false,
+    "id": "base/chemin-principal"
+   }
+  ],
+  "flow": "none",
+  "doc": "Le modèle complet, mesuré sur le vrai code de mllm.model.Transformer.",
+  "id": "base"
+ }
+}

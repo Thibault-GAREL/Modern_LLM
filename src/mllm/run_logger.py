@@ -57,6 +57,10 @@ FALLBACK_ROOT = Path(r"C:\0-Code_py_temp\0-log_progress")
 PROGRESS_EVERY_PCT = 5
 BAR_WIDTH = 10
 
+# Mesures par couche (skill thibault-model-viz) : envoyees a MLflow comme le reste,
+# mais jamais dans la ligne de progression, qui porterait des centaines de valeurs.
+LAYER_PREFIX = "layer/"
+
 
 def find_project_root(start: Path | None = None) -> Path | None:
     """Remonte l'arborescence jusqu'a un marqueur de projet."""
@@ -224,12 +228,13 @@ class RunLogger:
         self._metrics_fh.flush()
 
         numeric = {k: float(v) for k, v in values.items() if isinstance(v, (int, float))}
-        self._last.update(numeric)
+        readable = {k: v for k, v in numeric.items() if not k.startswith(LAYER_PREFIX)}
+        self._last.update(readable)
         if numeric and self._mlflow is not None:
             self._mlflow_safe(self._mlflow.log_metrics, numeric, step=step)
-        if show and numeric:
+        if show and readable:
             prefix = f"step {step:>6d}  " if step is not None else ""
-            self.log(f"  {prefix}{_format_metrics(numeric)}")
+            self.log(f"  {prefix}{_format_metrics(readable)}")
 
     def best(self, name: str, value: float, step: int) -> bool:
         """Retient le meilleur score et signale les ameliorations.

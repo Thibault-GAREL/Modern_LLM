@@ -1,0 +1,4845 @@
+{
+ "name": "mai-v2",
+ "title": "M.A.I v2",
+ "subtitle": "décodeur seul · 12 blocs · MQA · SwiGLU · RoPE · RMSNorm pre · MTP ×2",
+ "source": "configs/mai_v2.yaml",
+ "generated": "2026-10-28T17:07:58",
+ "torch": "2.5.1+cu121",
+ "symbols": {
+  "B": 5,
+  "T": 37
+ },
+ "params_total": 110912256,
+ "summary": [
+  [
+   "d_model",
+   "768"
+  ],
+  [
+   "blocs",
+   "12"
+  ],
+  [
+   "têtes",
+   "12 / 1 KV"
+  ],
+  [
+   "d_head",
+   "64"
+  ],
+  [
+   "d_ff",
+   "2 048"
+  ],
+  [
+   "vocab",
+   "32 000"
+  ],
+  [
+   "contexte",
+   "2 048"
+  ]
+ ],
+ "coverage": {
+  "covered": 110912256,
+  "total": 110912256,
+  "missing": [],
+  "unknown_modules": [],
+  "never_called": []
+ },
+ "links": [
+  {
+   "from": "norm_f",
+   "to": "mtp_in_0",
+   "label": "h du tronc",
+   "style": "dashed",
+   "kind": "mtp"
+  },
+  {
+   "from": "embed",
+   "to": "lm_head",
+   "label": "poids partagés",
+   "style": "dashed",
+   "kind": "embed"
+  },
+  {
+   "from": "embed",
+   "to": "mtp_emb_0",
+   "label": "emb(t+1)",
+   "style": "dashed",
+   "kind": "embed"
+  },
+  {
+   "from": "mtp_head_0",
+   "to": "lm_head",
+   "label": "partagée",
+   "style": "dashed",
+   "kind": "head"
+  },
+  {
+   "from": "embed",
+   "to": "mtp_emb_1",
+   "label": "emb(t+2)",
+   "style": "dashed",
+   "kind": "embed"
+  },
+  {
+   "from": "mtp_head_1",
+   "to": "lm_head",
+   "label": "partagée",
+   "style": "dashed",
+   "kind": "head"
+  },
+  {
+   "from": "mtp",
+   "to": "loss",
+   "label": "λ = 0.3",
+   "style": "dashed",
+   "kind": "loss"
+  }
+ ],
+ "root": {
+  "label": "M.A.I v2",
+  "kind": "stack",
+  "info": [
+   "décodeur seul · 12 blocs · MQA · SwiGLU · RoPE · RMSNorm pre · MTP ×2"
+  ],
+  "children": [
+   {
+    "label": "chemin principal",
+    "kind": "group",
+    "children": [
+     {
+      "label": "Tokens",
+      "kind": "input",
+      "info": [
+       "ids dans [0, 32 000)"
+      ],
+      "doc": "Le batch d'entrée, des identifiants de tokens.",
+      "scale": 3,
+      "id": "m-a-i-v2/chemin-principal/tokens",
+      "out": "[B, T]"
+     },
+     {
+      "label": "Embedding",
+      "kind": "embed",
+      "module": "embed",
+      "info": [
+       "32 000 × 768",
+       "lié à la tête LM"
+      ],
+      "doc": "Table de correspondance token → vecteur. Liée à la tête de sortie, elle économise V × d paramètres.",
+      "scale": 3,
+      "id": "embed",
+      "params": 24576000,
+      "cls": "Embedding",
+      "calls": 3,
+      "in": "[B, T]",
+      "out": "[B, T, 768]"
+     },
+     {
+      "label": "Tronc · 12 blocs",
+      "kind": "stack",
+      "module": "blocks",
+      "info": [
+       "d_model 768",
+       "position RoPE"
+      ],
+      "children": [
+       {
+        "label": "Bloc 0",
+        "kind": "block",
+        "module": "blocks.0",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.0.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-0/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.0.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.0.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.0.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.0.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.0.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-0/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-0/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-0/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.0.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-0/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.0.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.0.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.0.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.0.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-0/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-0/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-0/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-0",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 1",
+        "kind": "block",
+        "module": "blocks.1",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.1.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-1/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.1.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.1.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.1.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.1.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.1.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-1/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-1/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-1/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.1.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-1/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.1.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.1.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.1.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-1/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.1.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-1/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-1/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-1/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-1/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-1",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 2",
+        "kind": "block",
+        "module": "blocks.2",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.2.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-2/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.2.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.2.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.2.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.2.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.2.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-2/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-2/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-2/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.2.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-2/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.2.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.2.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.2.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-2/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.2.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-2/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-2/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-2/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-2/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-2",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 3",
+        "kind": "block",
+        "module": "blocks.3",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.3.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-3/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.3.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.3.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.3.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.3.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.3.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-3/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-3/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-3/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.3.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-3/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.3.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.3.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-3/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-3/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.3.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-3/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-3/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-3/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.3.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-3/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-3/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-3/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-3/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-3",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 4",
+        "kind": "block",
+        "module": "blocks.4",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.4.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-4/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.4.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.4.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.4.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.4.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.4.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-4/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-4/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-4/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.4.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-4/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.4.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.4.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-4/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-4/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-4/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.4.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-4/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-4/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-4/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.4.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-4/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-4/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-4/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-4/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-4",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 5",
+        "kind": "block",
+        "module": "blocks.5",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.5.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-5/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.5.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.5.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.5.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.5.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.5.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-5/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-5/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-5/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.5.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-5/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.5.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.5.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-5/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-5/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-5/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.5.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-5/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-5/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-5/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.5.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-5/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-5/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-5/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-5/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-5",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 6",
+        "kind": "block",
+        "module": "blocks.6",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.6.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-6/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.6.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.6.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.6.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.6.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.6.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-6/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-6/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-6/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.6.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-6/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.6.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.6.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-6/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-6/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-6/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.6.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-6/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-6/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-6/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.6.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-6/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-6/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-6/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-6/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-6",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 7",
+        "kind": "block",
+        "module": "blocks.7",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.7.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-7/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.7.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.7.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.7.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.7.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.7.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-7/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-7/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-7/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.7.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-7/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.7.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.7.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-7/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-7/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-7/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.7.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-7/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-7/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-7/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.7.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-7/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-7/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-7/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-7/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-7",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 8",
+        "kind": "block",
+        "module": "blocks.8",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.8.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-8/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.8.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.8.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.8.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.8.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.8.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-8/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-8/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-8/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.8.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-8/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.8.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.8.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-8/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-8/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-8/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.8.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-8/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-8/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-8/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.8.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-8/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-8/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-8/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-8/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-8",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 9",
+        "kind": "block",
+        "module": "blocks.9",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.9.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-9/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.9.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.9.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.9.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.9.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.9.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-9/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-9/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-9/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.9.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-9/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.9.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.9.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-9/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-9/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-9/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.9.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-9/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-9/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-9/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.9.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-9/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-9/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-9/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-9/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-9",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 10",
+        "kind": "block",
+        "module": "blocks.10",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.10.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-10/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.10.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.10.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.10.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.10.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.10.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-10/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-10/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-10/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.10.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-10/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.10.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.10.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-10/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-10/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-10/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.10.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-10/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-10/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-10/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.10.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-10/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-10/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-10/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-10/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-10",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       },
+       {
+        "label": "Bloc 11",
+        "kind": "block",
+        "module": "blocks.11",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.11.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-11/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "blocks.11.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "blocks.11.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "blocks.11.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "blocks.11.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "blocks.11.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 768]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "trunk/bloc-11/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-11/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-11/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "blocks.11.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "trunk/bloc-11/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "blocks.11.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "blocks.11.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "trunk/bloc-11/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T, 768]",
+                  "out": "[B, T, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "trunk/bloc-11/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "trunk/bloc-11/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "blocks.11.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "trunk/bloc-11/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T, 768]",
+                "out": "[B, T, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "trunk/bloc-11/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "trunk/bloc-11/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "blocks.11.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "trunk/bloc-11/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T, 2048]",
+              "out": "[B, T, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "trunk/bloc-11/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T, 768]",
+            "out": "[B, T, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "trunk/bloc-11/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "trunk/bloc-11/feed-forward-r-siduel"
+         }
+        ],
+        "id": "trunk/bloc-11",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T, 768]",
+        "out": "[B, T, 768]"
+       }
+      ],
+      "layout": "row",
+      "doc": "La pile de blocs décodeurs. Chaque bloc lit et réécrit le flux résiduel de dimension d_model.",
+      "badge": "×12",
+      "id": "trunk",
+      "params": 71976960,
+      "cls": "ModuleList",
+      "calls": 0
+     },
+     {
+      "label": "Norm finale",
+      "kind": "norm",
+      "module": "norm_f",
+      "info": [
+       "ε 1e-05"
+      ],
+      "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+      "id": "norm_f",
+      "scale": 3,
+      "params": 768,
+      "cls": "RMSNorm",
+      "calls": 1,
+      "in": "[B, T, 768]",
+      "out": "[B, T, 768]"
+     },
+     {
+      "label": "Tête LM",
+      "kind": "head",
+      "module": "lm_head",
+      "info": [
+       "768 → 32 000",
+       "poids de l'embedding"
+      ],
+      "doc": "Projection vers le vocabulaire, logits en fp32 (un softmax sur 32k en bf16 perd la queue).",
+      "scale": 3,
+      "id": "lm_head",
+      "params": 0,
+      "cls": "LMHead",
+      "calls": 3,
+      "in": "[B, T, 768]",
+      "out": "[B, T, 32000]"
+     },
+     {
+      "label": "Logits",
+      "kind": "output",
+      "info": [
+       "token suivant"
+      ],
+      "scale": 3,
+      "id": "m-a-i-v2/chemin-principal/logits",
+      "out": "[B, T, 32 000]"
+     },
+     {
+      "label": "Pertes",
+      "kind": "loss",
+      "info": [
+       "cross-entropy",
+       "z-loss 0.0001",
+       "MTP × 0.3"
+      ],
+      "doc": "Chaque terme est journalisé séparément (loss/ce, loss/z_loss, loss/mtp, loss/moe) : fusionnés, un routeur qui diverge deviendrait invisible.",
+      "scale": 3,
+      "id": "loss"
+     }
+    ],
+    "layout": "row",
+    "box": false,
+    "id": "m-a-i-v2/chemin-principal"
+   },
+   {
+    "label": "Multi-Token Prediction",
+    "kind": "mtp",
+    "module": "mtp",
+    "info": [
+     "profondeur 2 · λ = 0.3",
+     "retiré à l'inférence ou drafter spéculatif"
+    ],
+    "children": [
+     {
+      "label": "Profondeur 1 · prédit t+2",
+      "kind": "mtp",
+      "module": "mtp.modules_.0",
+      "info": [
+       "h_0 ⊕ emb(t+1) → bloc → tête"
+      ],
+      "children": [
+       {
+        "label": "h | emb",
+        "kind": "group",
+        "children": [
+         {
+          "label": "RMSNorm h",
+          "kind": "norm",
+          "module": "mtp.modules_.0.norm_hidden",
+          "info": [
+           "ε 1e-05"
+          ],
+          "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+          "id": "mtp_in_0",
+          "params": 768,
+          "cls": "RMSNorm",
+          "calls": 1,
+          "in": "[B, T−1, 768]",
+          "out": "[B, T−1, 768]"
+         },
+         {
+          "label": "emb(t+1)",
+          "kind": "group",
+          "children": [
+           {
+            "label": "Embedding partagé",
+            "kind": "embed",
+            "info": [
+             "token t+1"
+            ],
+            "id": "mtp_emb_0",
+            "out": "[B, T−1, 768]"
+           },
+           {
+            "label": "RMSNorm emb",
+            "kind": "norm",
+            "module": "mtp.modules_.0.norm_embed",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "mtp_0/h-emb/emb-t-1/rmsnorm-emb",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T−1, 768]",
+            "out": "[B, T−1, 768]"
+           }
+          ],
+          "box": false,
+          "id": "mtp_0/h-emb/emb-t-1"
+         }
+        ],
+        "layout": "row",
+        "flow": "par",
+        "box": false,
+        "id": "mtp_0/h-emb"
+       },
+       {
+        "label": "Concaténation",
+        "kind": "concat",
+        "doc": "[norm(h) ; norm(emb)] : 2·768 coordonnées.",
+        "id": "mtp_0/concat-nation"
+       },
+       {
+        "label": "Projection",
+        "kind": "linear",
+        "module": "mtp.modules_.0.proj",
+        "info": [
+         "1 536 → 768"
+        ],
+        "doc": "Ramène la concaténation à d_model.",
+        "id": "mtp_0/projection",
+        "params": 1179648,
+        "cls": "Linear",
+        "calls": 1,
+        "in": "[B, T−1, 1536]",
+        "out": "[B, T−1, 768]"
+       },
+       {
+        "label": "Bloc MTP 1",
+        "kind": "block",
+        "module": "mtp.modules_.0.block",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "mtp.modules_.0.block.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T−1, 768]",
+            "out": "[B, T−1, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "mtp.modules_.0.block.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "mtp.modules_.0.block.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T−1, 768]",
+                  "out": "[B, T−1, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "mtp.modules_.0.block.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T−1, 768]",
+                  "out": "[B, T−1, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "mtp.modules_.0.block.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T−1, 768]",
+                  "out": "[B, T−1, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "mtp.modules_.0.block.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T−1, 768]",
+              "out": "[B, T−1, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T−1, 768]",
+            "out": "[B, T−1, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "mtp_0/bloc-mtp-1/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "mtp_0/bloc-mtp-1/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "mtp.modules_.0.block.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T−1, 768]",
+            "out": "[B, T−1, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "mtp.modules_.0.block.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "mtp.modules_.0.block.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T−1, 768]",
+                  "out": "[B, T−1, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "mtp.modules_.0.block.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T−1, 768]",
+                "out": "[B, T−1, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "mtp.modules_.0.block.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T−1, 2048]",
+              "out": "[B, T−1, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T−1, 768]",
+            "out": "[B, T−1, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "mtp_0/bloc-mtp-1/feed-forward-r-siduel"
+         }
+        ],
+        "id": "mtp_0/bloc-mtp-1",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T−1, 768]",
+        "out": "[B, T−1, 768]"
+       },
+       {
+        "label": "Tête LM partagée",
+        "kind": "head",
+        "info": [
+         "mêmes poids"
+        ],
+        "id": "mtp_head_0",
+        "out": "[B, T−1, 32 000]"
+       }
+      ],
+      "id": "mtp_0",
+      "params": 7179264,
+      "cls": "MTPModule",
+      "calls": 1,
+      "in": "[B, T−1, 768]",
+      "out": "[B, T−1, 768]"
+     },
+     {
+      "label": "Profondeur 2 · prédit t+3",
+      "kind": "mtp",
+      "module": "mtp.modules_.1",
+      "info": [
+       "h_1 ⊕ emb(t+2) → bloc → tête"
+      ],
+      "children": [
+       {
+        "label": "h | emb",
+        "kind": "group",
+        "children": [
+         {
+          "label": "RMSNorm h1",
+          "kind": "norm",
+          "module": "mtp.modules_.1.norm_hidden",
+          "info": [
+           "ε 1e-05"
+          ],
+          "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+          "id": "mtp_in_1",
+          "params": 768,
+          "cls": "RMSNorm",
+          "calls": 1,
+          "in": "[B, T−2, 768]",
+          "out": "[B, T−2, 768]"
+         },
+         {
+          "label": "emb(t+2)",
+          "kind": "group",
+          "children": [
+           {
+            "label": "Embedding partagé",
+            "kind": "embed",
+            "info": [
+             "token t+2"
+            ],
+            "id": "mtp_emb_1",
+            "out": "[B, T−2, 768]"
+           },
+           {
+            "label": "RMSNorm emb",
+            "kind": "norm",
+            "module": "mtp.modules_.1.norm_embed",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "mtp_1/h-emb/emb-t-2/rmsnorm-emb",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T−2, 768]",
+            "out": "[B, T−2, 768]"
+           }
+          ],
+          "box": false,
+          "id": "mtp_1/h-emb/emb-t-2"
+         }
+        ],
+        "layout": "row",
+        "flow": "par",
+        "box": false,
+        "id": "mtp_1/h-emb"
+       },
+       {
+        "label": "Concaténation",
+        "kind": "concat",
+        "doc": "[norm(h) ; norm(emb)] : 2·768 coordonnées.",
+        "id": "mtp_1/concat-nation"
+       },
+       {
+        "label": "Projection",
+        "kind": "linear",
+        "module": "mtp.modules_.1.proj",
+        "info": [
+         "1 536 → 768"
+        ],
+        "doc": "Ramène la concaténation à d_model.",
+        "id": "mtp_1/projection",
+        "params": 1179648,
+        "cls": "Linear",
+        "calls": 1,
+        "in": "[B, T−2, 1536]",
+        "out": "[B, T−2, 768]"
+       },
+       {
+        "label": "Bloc MTP 2",
+        "kind": "block",
+        "module": "mtp.modules_.1.block",
+        "info": [
+         "MQA + SwiGLU",
+         "norm pre"
+        ],
+        "children": [
+         {
+          "label": "attention résiduelle",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "mtp.modules_.1.block.attn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T−2, 768]",
+            "out": "[B, T−2, 768]"
+           },
+           {
+            "label": "Multi-Query Attention",
+            "kind": "attention",
+            "module": "mtp.modules_.1.block.attn.sublayer",
+            "info": [
+             "12 têtes · 1 K/V · d_head 64",
+             "causale, contexte complet"
+            ],
+            "children": [
+             {
+              "label": "Q, K, V",
+              "kind": "group",
+              "children": [
+               {
+                "label": "W_Q",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_Q",
+                  "kind": "linear",
+                  "module": "mtp.modules_.1.block.attn.sublayer.q_proj",
+                  "info": [
+                   "768 → 768",
+                   "12 têtes × 64"
+                  ],
+                  "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/q-k-v/w-q/w-q",
+                  "params": 589824,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T−2, 768]",
+                  "out": "[B, T−2, 768]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/q-k-v/w-q/rope",
+                  "out": "[B, 12, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/q-k-v/w-q"
+               },
+               {
+                "label": "W_K",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_K",
+                  "kind": "linear",
+                  "module": "mtp.modules_.1.block.attn.sublayer.k_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/q-k-v/w-k/w-k",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T−2, 768]",
+                  "out": "[B, T−2, 64]"
+                 },
+                 {
+                  "label": "RoPE",
+                  "kind": "rope",
+                  "info": [
+                   "θ = 10000 · half"
+                  ],
+                  "doc": "Tourne chaque paire de coordonnées de q et k d'un angle proportionnel à la position. Le produit q·k ne dépend alors que de la distance entre les tokens. Tables en fp32.",
+                  "ref": "Su et al. 2021, arXiv 2104.09864",
+                  "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/q-k-v/w-k/rope",
+                  "out": "[B, 1, T, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/q-k-v/w-k"
+               },
+               {
+                "label": "W_V",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_V",
+                  "kind": "linear",
+                  "module": "mtp.modules_.1.block.attn.sublayer.v_proj",
+                  "info": [
+                   "768 → 64",
+                   "1 tête × 64"
+                  ],
+                  "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/q-k-v/w-v/w-v",
+                  "params": 49152,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T−2, 768]",
+                  "out": "[B, T−2, 64]"
+                 }
+                ],
+                "box": false,
+                "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/q-k-v/w-v"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/q-k-v"
+             },
+             {
+              "label": "Attention causale",
+              "kind": "sdpa",
+              "info": [
+               "softmax(QKᵀ · 1/√64 + masque) · V",
+               "causale, contexte complet"
+              ],
+              "doc": "F.scaled_dot_product_attention (kernel fusionné) sauf avec softcap ou puits appris, qui passent par le chemin naïf. Le masque causal cache les tokens futurs.",
+              "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/attention-causale",
+              "out": "[B, 12, T, 64]"
+             },
+             {
+              "label": "W_O",
+              "kind": "linear",
+              "module": "mtp.modules_.1.block.attn.sublayer.o_proj",
+              "info": [
+               "768 → 768",
+               "init / √(2·L)"
+              ],
+              "doc": "Recombine les têtes et revient dans le flux résiduel.",
+              "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention/w-o",
+              "params": 589824,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T−2, 768]",
+              "out": "[B, T−2, 768]"
+             }
+            ],
+            "doc": "Attention causale, une seule tête K/V partagée par les 12 têtes. Le cache KV ne garde que les têtes K/V, d'où le choix de MQA pour l'inférence.",
+            "ref": "Shazeer 2019, arXiv 1911.02150",
+            "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/multi-query-attention",
+            "params": 1277952,
+            "cls": "Attention",
+            "calls": 1,
+            "in": "[B, T−2, 768]",
+            "out": "[B, T−2, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "mtp_1/bloc-mtp-2/attention-r-siduelle/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "mtp_1/bloc-mtp-2/attention-r-siduelle"
+         },
+         {
+          "label": "feed-forward résiduel",
+          "kind": "group",
+          "children": [
+           {
+            "label": "RMSNorm",
+            "kind": "norm",
+            "module": "mtp.modules_.1.block.ffn.norm_in",
+            "info": [
+             "ε 1e-05"
+            ],
+            "doc": "x / RMS(x) · w, calculé en fp32. Pas de recentrage ni de biais, plus simple et aussi bon que LayerNorm (Zhang et Sennrich 2019, arXiv 1910.07467).",
+            "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/rmsnorm",
+            "params": 768,
+            "cls": "RMSNorm",
+            "calls": 1,
+            "in": "[B, T−2, 768]",
+            "out": "[B, T−2, 768]"
+           },
+           {
+            "label": "SwiGLU feed-forward",
+            "kind": "ffn",
+            "module": "mtp.modules_.1.block.ffn.sublayer",
+            "info": [
+             "768 → 2 048 → 768"
+            ],
+            "children": [
+             {
+              "label": "porte | valeur",
+              "kind": "group",
+              "children": [
+               {
+                "label": "porte",
+                "kind": "group",
+                "children": [
+                 {
+                  "label": "W_gate",
+                  "kind": "linear",
+                  "module": "mtp.modules_.1.block.ffn.sublayer.gate_proj",
+                  "info": [
+                   "768 → 2 048"
+                  ],
+                  "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/w-gate",
+                  "params": 1572864,
+                  "cls": "Linear",
+                  "calls": 1,
+                  "in": "[B, T−2, 768]",
+                  "out": "[B, T−2, 2048]"
+                 },
+                 {
+                  "label": "SiLU",
+                  "kind": "act",
+                  "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte/silu",
+                  "out": "[B, T, 2 048]"
+                 }
+                ],
+                "box": false,
+                "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/porte"
+               },
+               {
+                "label": "W_up",
+                "kind": "linear",
+                "module": "mtp.modules_.1.block.ffn.sublayer.up_proj",
+                "info": [
+                 "768 → 2 048"
+                ],
+                "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur/w-up",
+                "params": 1572864,
+                "cls": "Linear",
+                "calls": 1,
+                "in": "[B, T−2, 768]",
+                "out": "[B, T−2, 2048]"
+               }
+              ],
+              "layout": "row",
+              "flow": "par",
+              "box": false,
+              "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/swiglu-feed-forward/porte-valeur"
+             },
+             {
+              "label": "Produit",
+              "kind": "mul",
+              "doc": "La porte filtre, coordonnée par coordonnée, ce qui passe du chemin valeur.",
+              "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/swiglu-feed-forward/produit"
+             },
+             {
+              "label": "W_down",
+              "kind": "linear",
+              "module": "mtp.modules_.1.block.ffn.sublayer.down_proj",
+              "info": [
+               "2 048 → 768",
+               "init / √(2·L)"
+              ],
+              "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/swiglu-feed-forward/w-down",
+              "params": 1572864,
+              "cls": "Linear",
+              "calls": 1,
+              "in": "[B, T−2, 2048]",
+              "out": "[B, T−2, 768]"
+             }
+            ],
+            "doc": "down(SiLU(gate(x)) ⊙ up(x)). Trois matrices, d_ff ≈ 8/3·d pour garder le budget d'un MLP 4d (Shazeer 2020, arXiv 2002.05202).",
+            "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/swiglu-feed-forward",
+            "params": 4718592,
+            "cls": "GatedMLP",
+            "calls": 1,
+            "in": "[B, T−2, 768]",
+            "out": "[B, T−2, 768]"
+           },
+           {
+            "label": "Addition",
+            "kind": "add",
+            "doc": "Connexion résiduelle : la sortie du sous-bloc s'ajoute au flux principal.",
+            "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel/addition"
+           }
+          ],
+          "box": false,
+          "skip": true,
+          "id": "mtp_1/bloc-mtp-2/feed-forward-r-siduel"
+         }
+        ],
+        "id": "mtp_1/bloc-mtp-2",
+        "params": 5998080,
+        "cls": "Block",
+        "calls": 1,
+        "in": "[B, T−2, 768]",
+        "out": "[B, T−2, 768]"
+       },
+       {
+        "label": "Tête LM partagée",
+        "kind": "head",
+        "info": [
+         "mêmes poids"
+        ],
+        "id": "mtp_head_1",
+        "out": "[B, T−2, 32 000]"
+       }
+      ],
+      "id": "mtp_1",
+      "params": 7179264,
+      "cls": "MTPModule",
+      "calls": 1,
+      "in": "[B, T−2, 768]",
+      "out": "[B, T−2, 768]"
+     }
+    ],
+    "layout": "row",
+    "doc": "Chaque profondeur prédit un token de plus, en partant de l'état du tronc et de l'embedding du token futur. Le signal d'apprentissage se densifie. À l'inférence les modules sont retirés, ou servent de brouillon.",
+    "ref": "Gloeckle et al. 2024, arXiv 2404.19737 · DeepSeek-V3",
+    "id": "mtp",
+    "params": 14358528,
+    "cls": "MTPHeads",
+    "calls": 1,
+    "in": "[B, T, 768]",
+    "out": "[B, T−1, 32000]"
+   }
+  ],
+  "flow": "none",
+  "doc": "Le modèle complet, mesuré sur le vrai code de mllm.model.Transformer.",
+  "id": "m-a-i-v2"
+ }
+}

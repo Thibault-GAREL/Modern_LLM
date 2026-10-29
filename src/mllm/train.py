@@ -30,6 +30,7 @@ from torch import nn
 
 from mllm.config import Config
 from mllm.data import ByteDataset, build_dataset
+from mllm.layer_stats import LayerStats
 from mllm.model import Transformer
 from mllm.optim import build_optimizer, build_scheduler
 from mllm.run_logger import RunLogger
@@ -221,6 +222,13 @@ def train(
                     f"${compute.cost_usd:.2f} already spent on this model"
                 )
 
+        # layer/<module>/<stat> metrics read by visualisation/, forward hooks
+        # would force recompiles under torch.compile so only grads and weights then
+        layer_stats = LayerStats(
+            model, every=train_cfg.layer_stats_interval, activations=not train_cfg.compile
+        )
+        run.log(layer_stats.describe())
+
         run.section("training")
         model.train()
         compute.start()
@@ -232,6 +240,7 @@ def train(
         ):
             t0 = time.perf_counter()
             optimizer.zero_grad(set_to_none=True)
+            layer_stats.start(step)
             totals: dict[str, float] = {}
 
             for _ in range(train_cfg.grad_accum_steps):
@@ -247,6 +256,8 @@ def train(
                     )
 
             scaler.unscale_(optimizer)
+            # raw per-layer gradient norms, so measured before the clipping
+            layer_stats.before_optimizer()
             grad_norm = nn.utils.clip_grad_norm_(
                 model.parameters(), train_cfg.max_grad_norm
             )
@@ -274,6 +285,7 @@ def train(
                 metrics.update(
                     {f"{k}/layer{i}": v for k, v in routing.as_dict().items()}
                 )
+            metrics.update(layer_stats.collect())
             run.metric(step=step, **metrics)
 
             if val_data is not None and (step + 1) % train_cfg.eval_interval == 0:
