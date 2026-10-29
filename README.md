@@ -1025,7 +1025,7 @@ choice rather than an oversight.
 | **Quantization**, post-training and quantization-aware | Compresses a finished model. Orthogonal to which components that model is built from. |
 | **Custom kernels** beyond what PyTorch ships | A fused kernel changes the memory traffic, not the result. The one exception, FlashAttention, is reachable through SDPA and the `[flash]` extra. |
 | **Post-training** entirely: supervised fine-tuning, RLHF, reasoning traces | A separate field with its own ablations. This repo stops at the pretrained model. |
-| **The agent harness**: the loop, tool calling, context and cache management | Wraps a finished model instead of changing what it computes. A trained `mllm` checkpoint predicts tokens, it takes a harness to make it read files and run commands. Documented in [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), which drives this library as its local provider. |
+| **The agent harness**: the loop, tool calling, context and cache management | Wraps a finished model instead of changing what it computes. A trained `mllm` checkpoint predicts tokens, it takes a harness to make it read files and run commands. Explained in my [llm-harness](https://github.com/Thibault-GAREL/LLM_harness) learning notes. |
 | **Attention-free mixers**: state space models, linear attention, modern RNNs | They replace attention instead of reshaping it, while every flag here keeps the 2017 block and changes what sits inside it. Documented in [Transformer Alternatives](https://github.com/Thibault-GAREL/Transformer_alternative). |
 | **Tokenizer training** | Upstream of the architecture. `mllm` takes token ids, and `bench/ablation.py` works on raw bytes precisely so no tokenizer choice contaminates a comparison. |
 | **Anything about closed models** | GPT, Claude and Gemini architectures are not published. What is written here comes from open-weights papers, and community inference is labelled as such. |
@@ -1062,7 +1062,7 @@ Related work of mine, in the order they were built:
 
 Learning notes that go with this series (documentation repos, no shipped code yet):
 
-- 🔁 [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), the **harness** wrapped around a trained model (the loop, the tools, the context window), which uses `mllm` as its local provider.
+- 🔁 [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), the **harness** wrapped around a trained model (the loop, the tools, the context window).
 - 🌊 [Transformer Alternatives](https://github.com/Thibault-GAREL/Transformer_alternative), what tries to **replace** attention once the KV cache stops fitting (state space models, linear attention, modern RNNs and hybrids).
 
 Code created by me 😎, Thibault GAREL - [Github](https://github.com/Thibault-GAREL)

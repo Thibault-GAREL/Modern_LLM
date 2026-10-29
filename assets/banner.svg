@@ -1,11 +1,10 @@
-<svg viewBox="0 0 1000 360" xmlns="http://www.w3.org/2000/svg" width="1000" height="360" preserveAspectRatio="xMidYMid meet">
+<svg viewBox="0 0 1000 328" xmlns="http://www.w3.org/2000/svg" width="1000" height="328" preserveAspectRatio="xMidYMid meet">
   <title>Modern LLM, from the 2017 Transformer to the current open-weights defaults</title>
   <!--
   NODE REGISTRY (x, y, w, h)
   LEFT  70 120 350 170   (120..290)
   RIGHT 580 120 350 170
   arrow 430,205 -> 566,205
-  badges row y=316 h=26, w=106, gap=10, start x=41
   -->
   <defs>
     <style>
@@ -20,7 +19,7 @@
     </marker>
   </defs>
 
-  <rect width="1000" height="360" fill="#FFFFFF"/>
+  <rect width="1000" height="328" fill="#FFFFFF"/>
 
   <!-- Title -->
   <text x="500" y="56" font-size="26" font-weight="700" fill="#111827" text-anchor="middle">Modern LLM</text>
@@ -60,32 +59,5 @@
     <text x="628" y="234" font-size="12" font-weight="400" fill="#334155">SwiGLU, fine-grained MoE</text>
     <circle cx="612" cy="256" r="3.5" fill="#EAB308"/>
     <text x="628" y="260" font-size="12" font-weight="400" fill="#334155">RoPE, YaRN, NTK scaling</text>
-  </g>
-
-  <!-- ===== BADGE ROW ===== -->
-  <g>
-    <rect x="41" y="316" width="106" height="26" rx="13" fill="#FEF9C3" stroke="#EAB308" stroke-width="1"/>
-    <text x="94" y="333" font-size="11" font-weight="600" fill="#854D0E" text-anchor="middle">RoPE · YaRN</text>
-
-    <rect x="157" y="316" width="106" height="26" rx="13" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
-    <text x="210" y="333" font-size="11" font-weight="600" fill="#1D4ED8" text-anchor="middle">GQA · MLA</text>
-
-    <rect x="273" y="316" width="106" height="26" rx="13" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
-    <text x="326" y="333" font-size="11" font-weight="600" fill="#475569" text-anchor="middle">RMSNorm</text>
-
-    <rect x="389" y="316" width="106" height="26" rx="13" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1"/>
-    <text x="442" y="333" font-size="11" font-weight="600" fill="#6D28D9" text-anchor="middle">SwiGLU</text>
-
-    <rect x="505" y="316" width="106" height="26" rx="13" fill="#FDF2F8" stroke="#EC4899" stroke-width="1"/>
-    <text x="558" y="333" font-size="11" font-weight="600" fill="#9D174D" text-anchor="middle">MoE</text>
-
-    <rect x="621" y="316" width="106" height="26" rx="13" fill="#FEF9C3" stroke="#EAB308" stroke-width="1"/>
-    <text x="674" y="333" font-size="11" font-weight="600" fill="#854D0E" text-anchor="middle">MTP</text>
-
-    <rect x="737" y="316" width="106" height="26" rx="13" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1"/>
-    <text x="790" y="333" font-size="11" font-weight="600" fill="#0E7490" text-anchor="middle">KV cache</text>
-
-    <rect x="853" y="316" width="106" height="26" rx="13" fill="#ECFDF5" stroke="#10B981" stroke-width="1"/>
-    <text x="906" y="333" font-size="11" font-weight="600" fill="#065F46" text-anchor="middle">muP</text>
   </g>
 </svg>
