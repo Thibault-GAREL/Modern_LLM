@@ -1060,7 +1060,7 @@ Related work of mine, in the order they were built:
 
 - 🤖 [Original LLM](https://github.com/Thibault-GAREL/Language_Models), a bigram model and a 2017-style Transformer written from scratch. This repo picks up exactly where that one stops.
 
-Learning notes that go with this series (documentation repos, no shipped code yet):
+Learning notes that go with this series:
 
 - 🔁 [llm-harness](https://github.com/Thibault-GAREL/LLM_harness), the **harness** wrapped around a trained model (the loop, the tools, the context window).
 - 🌊 [Transformer Alternatives](https://github.com/Thibault-GAREL/Transformer_alternative), what tries to **replace** attention once the KV cache stops fitting (state space models, linear attention, modern RNNs and hybrids).
